@@ -42,6 +42,12 @@ fn main() {
 fn init_document(init_args: Init) -> Result<Option<String>, Box<dyn Error>> {
     println!("Create dybli document.");
     let init_args = DocumentInitOptions {directory: init_args.path};
-    Doc::init(&init_args);
+
+    match Doc::init(&init_args) {
+        Ok(_) => {println!("Created document.")}
+        Err(e) => { print!("{}", e.message());}
+    }
+
     Ok(None)
+
 }
