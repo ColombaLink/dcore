@@ -9,3 +9,6 @@ edition = "2021"
 clap = { version = "3.0", features = ["derive"] }
 git2 = "0.15"
 yrs = "0.12.0"
+openssl-sys = "0.9"
+openssl = "0.10"
+libp2p = "0.48.0"
