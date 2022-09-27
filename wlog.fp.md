@@ -104,3 +104,41 @@ cttVRsdOoego+fiy08eFE+aJIeYiINRGhqOBTsuqG4jIdpdKxPE=\n\
 repo.commit_signed()
 
 - [What does a PGP signature on a git commit prove? ](https://people.kernel.org/monsieuricon/what-does-a-pgp-signature-on-a-git-commit-prove)
+
+
+
+# Git message format 
+
+Git uses cryptographic signatures in various places, currently objects (tags, commits, mergetags) and transactions (
+pushes). In every case, the command which is about to create an object or transaction determines a payload from that,
+calls gpg to obtain a detached signature for the payload (gpg -bsa) and embeds the signature into the object or
+transaction.
+
+Signatures always begin with -----BEGIN PGP SIGNATURE----- and end with -----END PGP SIGNATURE-----, unless gpg is told
+to produce RFC1991 signatures which use MESSAGE instead of SIGNATURE.
+
+Signatures sometimes appear as a part of the normal payload (e.g. a signed tag has the signature block appended after
+the payload that the signature applies to), and sometimes appear in the value of an object header (e.g. a merge commit
+that merged a signed tag would have the entire tag contents on its "mergetag" header). In the case of the latter, the
+usual multi-line formatting rule for object headers applies. I.e. the second and subsequent lines are prefixed with a SP
+to signal that the line is continued from the previous line.
+
+https://cdn.kernel.org/pub/software/scm/git/docs/gitformat-signature.html
+
+
+see here: https://github.com/git/git/blob/36f8e7ed7d72d2ac73743c3c2226cceb29b32156/gpg-interface.c#L35
+
+https://github.com/git/git/blob/9bf691b78cf906751e65d65ba0c6ffdcd9a5a12c/Documentation/gitformat-signature.txt
+
+
+
+
+https://stackoverflow.com/questions/65870508/git-and-sha-256
+
+
+
+First, some ruminations on the problems with the current Git signature mechanism.
+Ideally, Git would use one of GnuPG's built-in signing mechanisms. If it did so, then it would be easy verify Git
+commits without having to invoke Git or to write scripts, by simply using GnuPG's gpg --verify or gpg2 --verify.
+
+# https://stackoverflow.com/questions/23584990/what-data-is-being-signed-when-you-git-commit-gpg-sign-key-id

@@ -10,3 +10,6 @@ gpg --import ./test/sign-commit/alice@cl.com.gpg
 
 ## export
 gpg --armor --export 09681635EA5CA2A31464F57285D47F6836A8ECB3
+
+gpg --export-secret-keys -a "Alice B" > private.key
+gpg --export -a "Alice B" > public.key
