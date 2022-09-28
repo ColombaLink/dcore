@@ -45,27 +45,132 @@ fn create_keypair() -> Result<(), ErrorStack> {
 }
 
 fn sign_git_commit() -> Result<(), git2::Error> {
-    let path = "test/sign-commit/test-repo";
+    let path = "test/sign-commit/rsa4096/test-repo";
     let mut init_options = RepositoryInitOptions::new();
     // init_options.bare(true);
     let repo = Repository::init_opts(&path, &init_options)?;
-    let oid = git2::Oid::from_str("709b01418d301979120fd58916f280cadb28735f")?;
+    let oid = git2::Oid::from_str("ad89fbbb303dda2587b2d729700ae74aa0ebe631")?;
+
     let commit = repo.find_commit(oid)?;
     {
-        let body = commit.message_raw().unwrap();
-        let header = commit.raw_header().unwrap();
-        println!("{}",header);
-        println!("{}",body);
+
+        println!("From commit");
+        println!();
+        print!("{}", commit.raw_header().unwrap());
+        print!("{}", commit.message_raw().unwrap());
+        println!();
+
+        let mut header_string = String::new();
+
+        let mut target_string = String::new();
+        use std::fmt::Write;
+        writeln!(target_string, "tree {}", commit.header_field_bytes("tree")?.as_str().ok_or_else(|| "").unwrap());
+        writeln!(target_string, "parent {}",commit.header_field_bytes("parent")?.as_str().ok_or_else(|| "").unwrap());
+        writeln!(target_string, "author {}",commit.header_field_bytes("author")?.as_str().ok_or_else(|| "").unwrap());
+        writeln!(target_string, "committer {}",commit.header_field_bytes("committer")?.as_str().ok_or_else(|| "").unwrap());
+        header_string = target_string.clone();
+        write!(target_string, "{}", commit.message_raw().unwrap());
+
+        println!("Our commit");
+        println!("{}", target_string);
+
+        let sig = sing_git_commit(target_string);
+        print!("{}", sig.unwrap());
+
+        println!("#######");
+        println!("# Lets create a git file, to test if the sig. can be validated by git.");
+        println!("#######");
+
+
+        let mut git_object_string = String::new();
+        git_object_string = git_object_string.clone();
+        write!(git_object_string, "{}", commit.message_raw().unwrap());
+
+        let mut git_object_string = String::new();
+        print!("{}", commit.raw_header().unwrap());
+        print!("{}", commit.message_raw().unwrap());
+
+        use sha1::{Sha1, Digest};
+        // create a Sha1 object
+        let mut hasher = Sha1::new();
+        // process input message
+        hasher.update(git_object_string);
+        let digest = hasher.finalize();
+
+
+
+        let head = repo.head().expect("reference");
+        let oid = head.target().expect("the current tree");
+        let head_commit = repo.find_commit(oid).expect("head commit exits");
+        let tree = head_commit.tree().expect("head tree exists");
+
+        //  let id = repo.blob(&).unwrap();
+        // todo: update the blobs content, create a commit with the tree builder, create a signed commit.
+
+        repo.commit_signed()
     }
 
-    println!("oid: {}", oid);
+
+
+
     Ok(())
 }
 
-fn read_file<P: AsRef<Path> + ::std::fmt::Debug>(path: P) -> File {
-    // Open the path in read-only mode, returns `io::Result<File>`
-    match File::open(&path) {
-        // The `description` method of `io::Error` returns a string that
+fn sing_git_commit(commit: String) ->  Result<(String), pgp::errors::Error> {
+
+    let f = read_file(Path::new("./test/sign-commit/rsa4096/private.key"));
+    let signed_secret_key = SignedSecretKey::from_armor_single(f);
+    let secret_key = signed_secret_key.expect("should load key").0;
+    let signature_str;
+
+    let passwd_fn = || String::new();
+    use sha1::{Sha1, Digest};
+    // create a Sha1 object
+    let mut hasher = Sha1::new();
+
+    // process input message
+    hasher.update(commit);
+    // acquire hash digest in the form of GenericArray,
+    // which in this case is equivalent to [u8; 20]
+    let digest = hasher.finalize();
+    let new_sig = secret_key.create_signature(passwd_fn, HashAlgorithm::SHA1, &digest[..])?;
+    let verif = secret_key.verify_signature(HashAlgorithm::SHA1, &digest[..], &new_sig);
+
+    match verif {
+        Ok(_) => println!("verified signature"),
+        Err(e) => println!("signature error")
+    }
+    let now = chrono::Utc::now();
+
+    let signature = ::pgp::Signature::new(
+        types::Version::Old,
+        packet::SignatureVersion::V4,
+        packet::SignatureType::Binary,
+        PublicKeyAlgorithm::RSA,
+        HashAlgorithm::SHA1,
+        [digest[0], digest[1]],
+        new_sig,
+        vec![
+            packet::Subpacket::SignatureCreationTime(now),
+            packet::Subpacket::Issuer(secret_key.key_id()),
+        ],
+        vec![],
+    );
+
+    let standalone_signature = StandaloneSignature::new(signature);
+    let armored_signature = standalone_signature.to_armored_string(None);
+    signature_str = match armored_signature {
+        Ok(s) => s,
+        Err(e) => String::from("error, did not create armored signature string ")
+    };
+
+    Ok(signature_str)
+}
+
+    fn read_file<P: AsRef<Path> + ::std::fmt::Debug>(path: P) -> File {
+        // Open the path in read-only mode, returns `io::Result<File>`
+        match File::open(&path) {
+            // The `description` method of `io::Error` returns a string that
         // describes the error
         Err(why) => panic!("couldn't open {:?}: {}", path, why),
         Ok(file) => file,
@@ -296,21 +401,6 @@ test
                 }
             }
 
-            /*
-            //! // sign and and write the package (the package written here is NOT rfc4880 compliant)
-            //! let mut signature_bytes = Vec::with_capacity(1024);
-            //!
-            //! let mut buff = Cursor::new(&mut signature_bytes);
-            //! packet::write_packet(&mut buff, &signature)
-            //!     .expect("Write must succeed");
-            //!
-            //!
-            //! let raw_signature = signature.signature;
-            //! verification_key
-            //!     .verify_signature(HashAlgorithm::SHA2_256, digest, &raw_signature)
-            //!     .expect("Verify must succeed");
-
-             */
         }
     }
 
