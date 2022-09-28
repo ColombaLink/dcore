@@ -182,7 +182,7 @@ f+SHxLV2cgZpFLcKEIg0odi8Uxv4WAk=
 
         // can no be parsed
         let x = StandaloneSignature::from_string(git_commit);
-        println!("...x ")
+        println!("...")
     }
 
 

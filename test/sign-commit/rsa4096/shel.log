@@ -1,0 +1,14 @@
+mkdir gpghome
+sudo chmod 600 gpghome/*
+sudo chmod 700 gpghome
+gpg --homedir gpghome/ --full-generate-key
+gpg --homedir gpghome/ --list-secret-keys --keyid-format=long
+gpg --homedir gpghome/ --armor --export C05EDB326F1E2EE3 > pub.asc
+export GNUPGHOME=$(pwd)/gpghome
+
+gpg --gen-key --homedir gpghome/ --passphrase "" --pinentry-mode loopback
+
+# gpg: agent_genkey failed: No such file or directory
+#  Key generation failed: No such file or directory
+# then run:
+killall gpg-agent
