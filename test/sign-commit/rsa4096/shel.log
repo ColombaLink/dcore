@@ -12,3 +12,6 @@ gpg --gen-key --homedir gpghome/ --passphrase "" --pinentry-mode loopback
 #  Key generation failed: No such file or directory
 # then run:
 killall gpg-agent
+
+
+# Important the commit email, the gpg email and the github email must be verified

@@ -142,3 +142,114 @@ Ideally, Git would use one of GnuPG's built-in signing mechanisms. If it did so,
 commits without having to invoke Git or to write scripts, by simply using GnuPG's gpg --verify or gpg2 --verify.
 
 # https://stackoverflow.com/questions/23584990/what-data-is-being-signed-when-you-git-commit-gpg-sign-key-id
+
+
+
+# something is wrong with the pgp parser 
+
+from the test we can see that certain packages are skipped, 
+probably our sig. is also part of it. 
+
+.filter(|(offset, _, _)| {
+// skip certain packages we are not (yet) parsing
+offset != "1193538" && // invalid mpi
+offset != "5053086" && // invalid mpi
+offset != "8240010" && // unknown public key algorithm 100
+offset != "9758352" && // TODO: unclear why this sig fails to parse
+offset != "9797527" && // TODO: unclear why this sig fails to parse
+offset != "11855679" && // TODO: unclear why this sig fails to parse
+offset != "11855798" && // TODO: unclear why this sig fails to parse
+offset != "11856933" && // TODO: unclear why this sig fails to parse
+offset != "11857023" && // TODO: unclear why this sig fails to parse
+offset != "11857113" && // TODO: unclear why this sig fails to parse
+offset != "12688657" && // TODO: unclear why this sig fails to parse
+offset != "24798372" && // TODO: unclear why this public sub key fails to parse
+offset != "24810682" && // bad attribute size
+offset != "38544535" // bad attribute size
+});
+
+
+# Sing the git commit 
+
+
+
+```c
+
+
+int result;
+int encoding_is_utf8;
+struct strbuf buffer;
+
+assert_oid_type(tree, OBJ_TREE);
+
+if (memchr(msg, '\0', msg_len))
+return error("a NUL byte in commit log message not allowed.");
+
+/* Not having i18n.commitencoding is the same as having utf-8 */
+encoding_is_utf8 = is_encoding_utf8(git_commit_encoding);
+
+strbuf_init(&buffer, 8192); /* should avoid reallocs for the headers */
+strbuf_addf(&buffer, "tree %s\n", oid_to_hex(tree));
+
+/*
+ * NOTE! This ordering means that the same exact tree merged with a
+ * different order of parents will be a _different_ changeset even
+ * if everything else stays the same.
+ */
+while (parents) {
+struct commit *parent = pop_commit(&parents);
+strbuf_addf(&buffer, "parent %s\n",
+oid_to_hex(&parent->object.oid));
+}
+
+/* Person/date information */
+if (!author)
+author = git_author_info(IDENT_STRICT);
+strbuf_addf(&buffer, "author %s\n", author);
+if (!committer)
+committer = git_committer_info(IDENT_STRICT);
+strbuf_addf(&buffer, "committer %s\n", committer);
+if (!encoding_is_utf8)
+strbuf_addf(&buffer, "encoding %s\n", git_commit_encoding);
+
+while (extra) {
+add_extra_header(&buffer, extra);
+extra = extra->next;
+}
+strbuf_addch(&buffer, '\n');
+
+/* And add the comment */
+strbuf_add(&buffer, msg, msg_len);
+
+/* And check the encoding */
+if (encoding_is_utf8 && !verify_utf8(&buffer))
+fprintf(stderr, _(commit_utf8_warn));
+
+if (sign_commit && sign_with_header(&buffer, sign_commit)) {
+result = -1;
+goto out;
+}
+
+result = write_object_file(buffer.buf, buffer.len, OBJ_COMMIT, ret);
+out:
+strbuf_release(&buffer);
+
+
+```
+
+# git extra header
+
+https://github.com/git/git/blob/36f8e7ed7d72d2ac73743c3c2226cceb29b32156/commit.c#L1292
+
+```c
+struct commit_extra_header *read_commit_extra_headers(struct commit *commit,
+const char **exclude)
+{
+struct commit_extra_header *extra = NULL;
+unsigned long size;
+const char *buffer = get_commit_buffer(commit, &size);
+extra = read_commit_extra_header_lines(buffer, size, exclude);
+unuse_commit_buffer(commit, buffer);
+return extra;
+}
+```
