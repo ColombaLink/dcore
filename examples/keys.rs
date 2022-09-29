@@ -6,6 +6,7 @@ use std::fs::File;
 use std::io::{Cursor, Read};
 use git2::{BlobWriter, Error, ObjectType, Repository, RepositoryInitOptions};
 use std::path::{Path, PathBuf};
+use gpgme::Data;
 use libp2p::{identity, PeerId};
 use libp2p::identity::ed25519::Keypair;
 use openssl::bn::BigNumContext;
@@ -130,7 +131,7 @@ fn sign_git_commit() -> Result<(), git2::Error> {
         let commit_string = commit_buffer.as_str();
 
      //   println!("{}", commit_buffer.as_str().unwrap());
-        let commit_signature = sing_git_commit(String::from(commit_buffer.as_str().unwrap())).unwrap();
+        let commit_signature = gpg_sign_string(&String::from(commit_buffer.as_str().unwrap())).unwrap();
         // println!("{}", commit_signature.unwrap());
 
         let mut commit_copy = commit_signature.clone();
@@ -439,5 +440,35 @@ test
     }
 
     Ok(())
+
+}
+
+pub fn gpg_sign_string(commit: &String) -> Result<String, gpgme::Error> {
+
+    let mut ctx = gpgme::Context::from_protocol(gpgme::Protocol::OpenPgp)?;
+
+    let file = Path::new("./test/sign-commit/private.key");
+    let input = File::open(file).expect("file must exist");
+    let mut data = Data::from_seekable_stream(input).expect("get data");
+    // mode.map(|m| data.set_encoding(m));
+    ctx.import(&mut data)
+            .map_err(|e| format!("import failed {:?}", e));
+
+    ctx.set_armor(true);
+
+    let signing_key = "6B02F638CE3410F55B38C2F41EEDF9019FDD0601";
+
+    let key = ctx.get_secret_key(signing_key)?;
+    ctx.add_signer(&key)?;
+    let mut output = Vec::new();
+    let signature = ctx.sign_detached(commit.clone(), &mut output);
+
+    if signature.is_err() {
+//        return Err(Error::GPG(signature.unwrap_err()));
+        println!("gpg sing error")
+    }
+
+    let x = String::from(std::str::from_utf8(&output).unwrap());
+    return Ok(x);
 
 }
