@@ -1,0 +1,35 @@
+This is a revocation certificate for the OpenPGP key:
+
+pub   rsa3072 2022-09-28 [SC] [expires: 2024-09-27]
+      6B02F638CE3410F55B38C2F41EEDF9019FDD0601
+uid          Alice <info@colomba.link>
+
+A revocation certificate is a kind of "kill switch" to publicly
+declare that a key shall not anymore be used.  It is not possible
+to retract such a revocation certificate once it has been published.
+
+Use it to revoke this key in case of a compromise or loss of
+the secret key.  However, if the secret key is still accessible,
+it is better to generate a new revocation certificate and give
+a reason for the revocation.  For details see the description of
+of the gpg command "--generate-revocation" in the GnuPG manual.
+
+To avoid an accidental use of this file, a colon has been inserted
+before the 5 dashes below.  Remove this colon with a text editor
+before importing and publishing this revocation certificate.
+
+:-----BEGIN PGP PUBLIC KEY BLOCK-----
+Comment: This is a revocation certificate
+
+iQG2BCABCgAgFiEEawL2OM40EPVbOML0Hu35AZ/dBgEFAmMz3o8CHQAACgkQHu35
+AZ/dBgF7kQv/WhPjr4NPyy0kBKaoETTqHV277wz+Bs62TcQRpuRv3DEYKH1usikF
+EYQ6V9DwCkRuxYGxSVgFgeLjsTslgZVd01xrPV/fzeQlw1HvjzetbJZFdgD57gSD
+432bkvJ865I+w12l6oYaUddavTOlo3vMXVEsVdMjPofP59g7JPApdC7KxkO88GHW
+s3Q1bNVbrmNryNWBY5RelFDY5664HOJEDY7kPGXnJdmAsec9E16BgYssVituVHIo
+eyYJYDhQyZ33v4vVYafHVVecZZ9f3Frzw6uoBiuBuL6eumlzGbIoEyh7MC0PzubR
+5SlonXHOwDECDtFYot7uI72G4PRok9k1uMB8VJnyiTSmnuSri8xQkS8yxssxz0cM
+zo0hom33NtyNPrFeYkiwAtjyVSQZNRFjdY7hyUulyOFcSwf7vaLMyA89UQxy++MD
+84HmfnbAG1E78wbVkQp7TtrX6zDuujQ/kKWeSgMCOY8J/F1dLGETYl3uLSyKAOwn
+xnnWYqqpuQ/P
+=Bpmk
+-----END PGP PUBLIC KEY BLOCK-----

@@ -1,9 +1,10 @@
+use std::borrow::Borrow;
 use std::collections::HashMap;
 use std::convert::Infallible;
 use std::fs;
 use std::fs::File;
 use std::io::{Cursor, Read};
-use git2::{BlobWriter, Error, Repository, RepositoryInitOptions};
+use git2::{BlobWriter, Error, ObjectType, Repository, RepositoryInitOptions};
 use std::path::{Path, PathBuf};
 use libp2p::{identity, PeerId};
 use libp2p::identity::ed25519::Keypair;
@@ -104,10 +105,43 @@ fn sign_git_commit() -> Result<(), git2::Error> {
         let head_commit = repo.find_commit(oid).expect("head commit exits");
         let tree = head_commit.tree().expect("head tree exists");
 
-        //  let id = repo.blob(&).unwrap();
         // todo: update the blobs content, create a commit with the tree builder, create a signed commit.
+        let x_tree_entry = tree.get_name("x").unwrap();
+        let x_blob = repo.find_blob(x_tree_entry.id())?;
+        let new_content = [x_blob.content(), &[10]].concat();
+        let x1_blob = repo.blob(&new_content).unwrap();
+        let mut builder = repo.treebuilder(Option::Some(&tree)).unwrap();
+        builder.insert("", x1_blob, 0o040000);
+        let new_tree_oid = builder.write().unwrap();
+        let new_tree = repo.find_tree(new_tree_oid).unwrap();
+        println!("new tree oid {}", new_tree_oid);
 
-        repo.commit_signed()
+
+        let authors_signature = git2::Signature::now("Alice", "info@colomba.link").unwrap();
+
+        let commit_buffer = repo.commit_create_buffer(
+            &authors_signature,
+            &authors_signature,
+            "Test commit...",
+            &new_tree,
+            &[&commit]
+        ).unwrap();
+
+        let commit_string = commit_buffer.as_str();
+
+     //   println!("{}", commit_buffer.as_str().unwrap());
+        let commit_signature = sing_git_commit(String::from(commit_buffer.as_str().unwrap())).unwrap();
+        // println!("{}", commit_signature.unwrap());
+
+        let mut commit_copy = commit_signature.clone();
+        let commit_signature_withoute_new_line =  commit_copy.truncate(commit_copy.len() - 1);;
+        let new_signed_commit = repo.commit_signed(
+            commit_buffer.as_str().unwrap(),
+            commit_copy.as_str(),
+            Some("gpgsig")
+        ).unwrap();
+
+        repo.reference("refs/heads/main", new_signed_commit, true, "update ref");
     }
 
 
