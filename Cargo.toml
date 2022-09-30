@@ -19,6 +19,7 @@ sha-1 = "0.10.0"
 
 gpgme = "0.10.0"
 gpgme-sys = "0.10.0"
+thiserror = "1.0.37"
 
 [dependencies.chrono]
 version = "^0.4"

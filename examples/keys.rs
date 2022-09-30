@@ -6,7 +6,7 @@ use std::fs::File;
 use std::io::{Cursor, Read};
 use git2::{BlobWriter, Error, ObjectType, Repository, RepositoryInitOptions};
 use std::path::{Path, PathBuf};
-use gpgme::Data;
+use gpgme::{Context, Data, Protocol};
 use libp2p::{identity, PeerId};
 use libp2p::identity::ed25519::Keypair;
 use openssl::bn::BigNumContext;
@@ -355,11 +355,22 @@ fn main() {
     }
      */
 
+
+
     match sign_git_commit() {
         Ok(_) => println!("success"),
         Err(e) => println!("error: {}", e)
     }
 
+    /*
+    // 6B02F638CE3410F55B38C2F41EEDF9019FDD0601
+     let mut ctx = Context::from_protocol(Protocol::OpenPgp).expect("ok");
+     let mut keyring = Data::load("./test/sign-commit/rsa4096/private.key").expect("ok");
+     for key in ctx.read_keys(&mut keyring).expect("key") {
+         println!("{:?}", key);
+     }
+
+*/
 }
 
 fn sing_git_commit_by_string() -> Result<(), pgp::errors::Error> {
@@ -446,8 +457,7 @@ test
 pub fn gpg_sign_string(commit: &String) -> Result<String, gpgme::Error> {
 
     let mut ctx = gpgme::Context::from_protocol(gpgme::Protocol::OpenPgp)?;
-
-    let file = Path::new("./test/sign-commit/private.key");
+    let file = Path::new("./test/sign-commit/rsa4096/private.key");
     let input = File::open(file).expect("file must exist");
     let mut data = Data::from_seekable_stream(input).expect("get data");
     // mode.map(|m| data.set_encoding(m));

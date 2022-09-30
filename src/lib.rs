@@ -1,4 +1,6 @@
 pub mod doc;
+mod gpg;
+mod errors;
 
 pub use crate::doc::{Doc, DocumentInitOptions};
 
