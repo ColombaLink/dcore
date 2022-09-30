@@ -1,22 +1,12 @@
 use std::collections::HashMap;
 use git2::{BlobWriter, Error, Repository, RepositoryInitOptions};
 use std::path::{PathBuf};
-use libp2p::{identity, PeerId};
-use libp2p::identity::ed25519::Keypair;
-use openssl::bn::BigNumContext;
-use openssl::ec::{EcGroup, EcKey, EcPoint, PointConversionForm};
-use openssl::encrypt::{Decrypter, Encrypter};
-use openssl::error::ErrorStack;
-
-use openssl::sign::{Signer, Verifier};
-use openssl::rsa::{Padding, Rsa};
-use openssl::pkey::{PKey, Private};
-use openssl::hash::MessageDigest;
-use openssl::nid::Nid;
-use openssl::sha::Sha512;
+use crate::gpg::{Gpg, Key};
 
 pub struct Doc {
-    repository: Repository
+    repository: Repository,
+    identity: Key,
+    gpg: Gpg,
 }
 
 unsafe impl Send for Doc {}
@@ -29,10 +19,13 @@ impl Doc {
 
     pub fn init(args: &DocumentInitOptions) -> Result<(), Error> {
         // 1. First we create a bare git repository that build the basis for the dybli document
-        let path = &args.directory;
+        let mut data = &mut args.directory.clone();
+        data.push(".data");
+
+        let key = &args.directory.clone().push(".keys");
         let mut init_options = RepositoryInitOptions::new();
         init_options.bare(true);
-        let repo = Repository::init_opts(&path, &init_options)?;
+        let repo = Repository::init_opts(&data, &init_options)?;
 
         // 2. next we create the config
         //      for this we have to init a yrs document as the config resource is a crdt
@@ -58,5 +51,21 @@ impl Doc {
         println!("{}", id);
 
         Ok(())
+    }
+
+}
+
+#[cfg(test)]
+mod tests {
+    use std::fs;
+    use std::path::PathBuf;
+    use crate::Doc;
+
+    #[test]
+    fn init_new_doc() {
+        let doc_dir = "./.test/doc/init_new_doc/";
+        fs::remove_dir_all(doc_dir).ok();
+        Doc::init(&crate::DocumentInitOptions{ directory: PathBuf::from(doc_dir) }).unwrap();
+
     }
 }
