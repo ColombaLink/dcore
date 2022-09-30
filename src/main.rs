@@ -18,13 +18,16 @@ struct Args {
 enum DcoreSubCommands {
     DocInit(InitDocArgs),
     IdentityCreate(IdentityCreateArgs),
+    IdentityListAll(IdentityListAllArgs),
 }
 
 fn main() {
     let options = Args::parse();
     let result = match options.dcore_sub {
-        DcoreSubCommands::DocInit(init) => document_init(init),
-        DcoreSubCommands::IdentityCreate(init) => identity_create(init),
+        DcoreSubCommands::DocInit(args) => document_init(args),
+
+        DcoreSubCommands::IdentityCreate(args) => identity_create(args),
+        DcoreSubCommands::IdentityListAll(args) => identity_list_all(args),
     };
 }
 
@@ -58,6 +61,8 @@ fn document_init(init_args: InitDocArgs) -> Result<Option<String>, Box<dyn Error
 
 
 /// Create a new identity
+///
+/// dcore identity-create --keyring-home ./gpghome
 #[derive(clap::Parser)]
 struct IdentityCreateArgs {
 
@@ -76,5 +81,28 @@ fn identity_create(init_args: IdentityCreateArgs) -> Result<Option<String>, Box<
 
     Ok(None)
 }
+
+/// List all identities
+///
+/// dcore identity-list-all --keyring-home ./gpghome
+#[derive(clap::Parser)]
+struct IdentityListAllArgs {
+
+    /// keyring home directory
+    /// default is ~/.dybli/keys
+    #[clap(short, long)]
+    keyring_home:  Option<String>,
+}
+
+fn identity_list_all(args: IdentityListAllArgs) -> Result<Option<String>, Box<dyn Error>> {
+    println!("List all identities.");
+    match Identity::print_all_identities(args.keyring_home) {
+        Ok(_) => {},
+        Err(e) => { print!("{}", e);}
+    };
+
+    Ok(None)
+}
+
 
 
