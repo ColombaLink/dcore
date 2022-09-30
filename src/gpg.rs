@@ -58,6 +58,7 @@ impl Gpg {
     }
 
     pub fn new_with_custom_home(home: &str) -> Self {
+        println!("Creating new gpg instance with home dir: {}", home);
         let mut gpg = Gpg::new();
         gpg.context.set_engine_home_dir(home).expect("Could not set gpg engine home dir");
         gpg
