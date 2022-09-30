@@ -51,10 +51,16 @@ impl Gpg {
         let mut context = gpgme::Context::from_protocol(gpgme::Protocol::OpenPgp)
             .expect("Could create pgpme context from open pgp protocol");
         context.set_armor(true);
-       context.set_engine_home_dir("./gpghome");
+        context.set_engine_home_dir("./gpghome");
         Gpg {
             context
         }
+    }
+
+    pub fn new_with_custom_home(home: &str) -> Self {
+        let mut gpg = Gpg::new();
+        gpg.context.set_engine_home_dir(home).expect("Could not set gpg engine home dir");
+        gpg
     }
 
 
