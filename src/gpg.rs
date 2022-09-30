@@ -8,7 +8,7 @@ use std::fmt::Write;
 
 use libp2p::identity::ed25519::Keypair;
 
-struct Gpg {
+pub struct Gpg {
     context: gpgme::Context
 }
 
