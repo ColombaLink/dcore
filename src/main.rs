@@ -17,9 +17,10 @@ struct Args {
 
 #[derive(clap::Parser)]
 enum DcoreSubCommands {
-    DocInit(DocumentCreateArgs),
     IdentityCreate(IdentityCreateArgs),
     IdentityListAll(IdentityListAllArgs),
+
+    DocumentCreate(DocumentCreateArgs),
 }
 
 fn main() {
@@ -28,7 +29,7 @@ fn main() {
         DcoreSubCommands::IdentityCreate(args) => identity_create(args),
         DcoreSubCommands::IdentityListAll(args) => identity_list_all(args),
 
-        DcoreSubCommands::DocInit(args) => document_create(args),
+        DcoreSubCommands::DocumentCreate(args) => document_create(args),
     };
 }
 
