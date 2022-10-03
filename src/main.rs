@@ -1,9 +1,10 @@
 //todo: add to a spare cli crate
 
 use std::error::Error;
+use std::os;
 use std::path::PathBuf;
 use clap::Parser;
-use dcore::doc::{ Doc, DocumentInitOptions};
+use dcore::doc::{Doc, DocumentInitOptions, DocumentInitOptionsIdentity};
 use dcore::Identity;
 
 #[derive(clap::Parser)]
@@ -16,7 +17,7 @@ struct Args {
 
 #[derive(clap::Parser)]
 enum DcoreSubCommands {
-    DocInit(InitDocArgs),
+    DocInit(DocumentCreateArgs),
     IdentityCreate(IdentityCreateArgs),
     IdentityListAll(IdentityListAllArgs),
 }
@@ -24,7 +25,7 @@ enum DcoreSubCommands {
 fn main() {
     let options = Args::parse();
     let result = match options.dcore_sub {
-        DcoreSubCommands::DocInit(args) => document_init(args),
+        DcoreSubCommands::DocInit(args) => document_create(args),
 
         DcoreSubCommands::IdentityCreate(args) => identity_create(args),
         DcoreSubCommands::IdentityListAll(args) => identity_list_all(args),
@@ -32,30 +33,53 @@ fn main() {
 }
 
 
-/// Init a Dybli Document
+/// Create a document
+///
+/// The document is created in the current directory.
+/// The provided document name is used as the directory name.
+///
+/// dcore document-create --keyring-home ./gpghome
 #[derive(clap::Parser)]
-struct InitDocArgs {
+struct DocumentCreateArgs {
 
-    /// name
+    /// keyring home directory
+    /// default is ~/.dybli/keys
     #[clap(short, long)]
-    path:  PathBuf,
+    keyring_home:  Option<String>,
 
-    /// name
+    /// Document name
     #[clap(short, long)]
-    name:  Option<String>,
+    document_name: String,
+
+    /// User identity fingerprint
+    #[clap(short, long)]
+    user_id_fingerprint: String,
 
 }
 
-fn document_init(init_args: InitDocArgs) -> Result<Option<String>, Box<dyn Error>> {
-    println!("Create dybli document.");
-    let init_args = DocumentInitOptions {directory: init_args.path};
+fn document_create(args: DocumentCreateArgs) -> Result<(), Box<dyn Error>> {
+    println!("Create a new document..");
+    // 1. Get the identity by the fingerprint
 
-    match Doc::init(&init_args) {
-        Ok(_) => {println!("Created document.")}
-        Err(e) => { print!("{}", e.message());}
-    }
+    let identity = Identity::get_identity(dcore::identity::GetIdentityArgs {
+        keyring_home_dir: args.keyring_home,
+        fingerprint: args.user_id_fingerprint
+    }).expect("Failed to get identity with the provided fingerprint");
 
-    Ok(None)
+    // 2. Create the document, and the config resource in the document.
+    //    The config resource contains the document name and the user identity fingerprint + public key.
+
+    std::fs::create_dir(&args.document_name).expect("Failed to create document directory");
+
+    let docInitOptions = DocumentInitOptions {
+        directory: PathBuf::from(args.document_name),
+        identity: DocumentInitOptionsIdentity {
+            public_key: identity.fingerprint.clone(), // todo: map the key object to the public key string
+            fingerprint: identity.fingerprint.clone(),
+        }
+    };
+    let document = Doc::init(&docInitOptions).expect("Failed to create document");
+    Ok(())
 }
 
 
@@ -72,14 +96,14 @@ struct IdentityCreateArgs {
     keyring_home:  Option<String>,
 }
 
-fn identity_create(init_args: IdentityCreateArgs) -> Result<Option<String>, Box<dyn Error>> {
+fn identity_create(init_args: IdentityCreateArgs) -> Result<(), Box<dyn Error>> {
     println!("Create a new identity.");
     match Identity::create_identity(init_args.keyring_home) {
         Ok(_) => {println!("Created identity.")},
         Err(e) => { print!("{}", e);}
     };
 
-    Ok(None)
+    Ok(())
 }
 
 /// List all identities
@@ -94,15 +118,16 @@ struct IdentityListAllArgs {
     keyring_home:  Option<String>,
 }
 
-fn identity_list_all(args: IdentityListAllArgs) -> Result<Option<String>, Box<dyn Error>> {
+fn identity_list_all(args: IdentityListAllArgs) -> Result<(), Box<dyn Error>> {
     println!("List all identities.");
     match Identity::print_all_identities(args.keyring_home) {
         Ok(_) => {},
         Err(e) => { print!("{}", e);}
     };
 
-    Ok(None)
+    Ok(())
 }
+
 
 
 

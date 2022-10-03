@@ -50,3 +50,50 @@ impl Identity {
     }
 
 }
+
+
+pub struct GetIdentityArgs {
+    pub keyring_home_dir: Option<String>,
+    pub fingerprint: String,
+}
+
+impl Identity {
+    pub fn get_identity(args: GetIdentityArgs) -> Result<Key, Error> {
+        let home_dir = get_gpg_home(args.keyring_home_dir);
+
+        let mut gpg = gpg::Gpg::new_with_custom_home(&home_dir);
+        let key = gpg.get_public_key(&args.fingerprint);
+        key
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::borrow::{Borrow, BorrowMut};
+    use std::time::Duration;
+    use gpgme::{Context, CreateKeyFlags, Key};
+    use gpgme::context::Keys;
+    use gpgme::PinentryMode::Default;
+    use crate::gpg::{CreateUserArgs, Gpg};
+    use crate::Identity;
+    use crate::identity::GetIdentityArgs;
+
+    #[test]
+    fn get_identity() {
+        let gpghome = "./.test/identity/get_identity/gpghome";
+        std::fs::remove_dir_all(gpghome);
+        std::fs::create_dir_all(gpghome);
+
+        let mut gpg = Gpg::new_with_custom_home("./.test/identity/get_identity/gpghome");
+        let key = gpg.create_key(
+            CreateUserArgs{ email: "alice@colomba.link", name: "Alice"}
+        ).expect("create key");
+
+        let identity = Identity::get_identity(GetIdentityArgs{
+            keyring_home_dir: Some(String::from(gpghome)),
+            fingerprint: key.fingerprint.clone()
+        }).expect("get identity");
+
+        assert_eq!(key.fingerprint, identity.fingerprint);
+    }
+}

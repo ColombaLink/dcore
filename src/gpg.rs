@@ -108,6 +108,12 @@ impl Gpg {
             fingerprint: key.fingerprint.clone()  })
     }
 
+    pub fn get_public_key(&mut self, fingerprint: &str) -> Result<Key, Error> {
+        let public_key = self.context.get_key(fingerprint).map_err(|e| Error::GpgmeError(e))?;
+        Ok(Key {
+            public: Some(public_key),
+            fingerprint: String::from(fingerprint)  })
+    }
 }
 
 
