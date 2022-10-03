@@ -21,6 +21,8 @@ enum DcoreSubCommands {
     IdentityListAll(IdentityListAllArgs),
 
     DocumentCreate(DocumentCreateArgs),
+
+    ResourceListAll(ResourceListAllArgs),
 }
 
 fn main() {
@@ -30,6 +32,8 @@ fn main() {
         DcoreSubCommands::IdentityListAll(args) => identity_list_all(args),
 
         DcoreSubCommands::DocumentCreate(args) => document_create(args),
+
+        DcoreSubCommands::ResourceListAll(args) => resource_create(args),
     };
 }
 
@@ -136,4 +140,26 @@ fn document_create(args: DocumentCreateArgs) -> Result<(), Box<dyn Error>> {
 
 
 
+/// List all identities
+///
+/// dcore resource-list-all --keyring-home ./gpghome
+#[derive(clap::Parser)]
+struct ResourceListAllArgs {
+
+    /// keyring home directory
+    /// default is ~/.dybli/keys
+    #[clap(short, long)]
+    keyring_home:  Option<String>,
+
+}
+
+fn resource_list_all(args: ResourceListAllArgs) -> Result<(), Box<dyn Error>> {
+    println!("List all identities.");
+    match Resource::print_all_identities(args.keyring_home) {
+        Ok(_) => {},
+        Err(e) => { print!("{}", e);}
+    };
+
+    Ok(())
+}
 
