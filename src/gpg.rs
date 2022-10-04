@@ -1,7 +1,8 @@
 use std::borrow::BorrowMut;
-use std::str::Utf8Error;
+use std::collections::btree_map::Keys;
+use std::str::{from_utf8, Utf8Error};
 use std::time::Duration;
-use gpgme::{Context, CreateKeyFlags};
+use gpgme::{Context, CreateKeyFlags, ExportMode};
 use pgp::packet::UserId;
 use crate::errors::Error;
 use crate::gpg::KeyType::EC;
@@ -49,11 +50,18 @@ impl Default for Options {
 
 impl Gpg {
 
+
+
     pub fn new() -> Self {
         let mut context = gpgme::Context::from_protocol(gpgme::Protocol::OpenPgp)
             .expect("Could create pgpme context from open pgp protocol");
         context.set_armor(true);
-        context.set_engine_home_dir("./gpghome");
+
+        let gpg_home = std::env::var("GNUPGHOME");
+        if gpg_home.is_ok() {
+            context.set_engine_home_dir(gpg_home.unwrap());
+        }
+
         Gpg {
             context
         }
@@ -133,6 +141,32 @@ impl Gpg {
 
         Ok(String::from(std::str::from_utf8(&output).unwrap()))
     }
+
+
+    pub fn get_public_key_by_identity(&mut self, identity: &Identity) -> Result<Vec<u8>, Error> {
+        let fingerprint = identity.get_fingerprint();
+        // Find the GPGME key to export
+        let key = self.context
+            .get_key(fingerprint)
+            .map_err(|e| Error::GpgmeError(e)).unwrap();
+
+        let mut data: Vec<u8> = Vec::new();
+        let cached_armor = self.context.armor();
+        self.context.set_armor(true);
+        self.context.export_keys(&[key], gpgme::ExportMode::empty(), &mut data)?;
+        self.context.set_armor(cached_armor);
+
+        let data_str = from_utf8(&data).expect("exported key is invalid UTF-8");
+        assert!(
+            !data_str.contains("PRIVATE KEY"),
+            "The exported key contains a private key, blocked to prevent leaking secret key"
+        );
+        assert!(
+            data_str.contains("PUBLIC KEY"),
+            "The exported key must contain PUBLIC KEY. Something is wrong gpgme exported public key."
+        );
+        Ok(data)
+    }
 }
 
 
@@ -145,6 +179,15 @@ mod tests {
     use gpgme::PinentryMode::Default;
     use crate::gpg::{CreateUserArgs, Gpg};
     use crate::Identity;
+    use crate::test_utils::{create_armored_key, create_test_env, create_test_env_with_sample_gpg_key};
+
+
+    #[test]
+    fn create_armored_keys_for_tests() {
+        create_armored_key()
+    }
+
+
 
     #[test]
     fn create_new_gpg() {
@@ -166,6 +209,7 @@ mod tests {
 
     #[test]
     fn with_public_key(){
+        create_test_env("./test/gpg/with_public_key".to_string());
         let mut gpg = Gpg::new();
         let key = gpg.create_key(
             CreateUserArgs{ email: "alice@colomba.link", name: "Alice"}
@@ -229,11 +273,8 @@ mod tests {
 
     #[test]
     fn test_gpg_sign(){
-        let gpghome = "./.test/gpg/sign/gpghome";
-        std::fs::remove_dir_all(gpghome);
-        std::fs::create_dir_all(gpghome);
-
-        let mut gpg = Gpg::new_with_custom_home(gpghome);
+        create_test_env("./.test/gpg/sign/gpghome".to_string());
+        let mut gpg = Gpg::new();
         let key = gpg.create_key(
             CreateUserArgs{ email: "alice@colomba.link", name: "Alice"}
         );
@@ -244,6 +285,16 @@ mod tests {
         let signature = gpg.sign_string(&content, &identity);
         assert_eq!(signature.is_ok(), true);
         assert_eq!(signature.unwrap().len(), 228);
+    }
+
+    #[test]
+    fn test_get_armored_public_key(){
+       let (path, key) =  create_test_env_with_sample_gpg_key("./.test/gpg/get_armored_public_key/".to_string());
+
+        let mut gpg = Gpg::new();
+        let identity = &Identity::from_key(key);
+        let armored_public_key = gpg.get_public_key_by_identity(identity).unwrap();
+        assert_eq!(armored_public_key.len(), 388);
     }
 
 }

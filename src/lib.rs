@@ -5,6 +5,7 @@ pub mod identity;
 mod resource;
 mod event;
 mod document_utils;
+mod test_utils;
 
 pub use crate::document::{Document, DocumentInitOptions};
 pub use crate::identity::{Identity};

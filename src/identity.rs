@@ -1,10 +1,25 @@
-use crate::errors::Error;
+use crate::errors::{Error};
 use crate::gpg;
 use crate::gpg::{CreateUserArgs, Gpg, Key};
 
 
 pub struct Identity {
     key: Key,
+}
+
+impl Identity {
+    pub(crate) fn get_key(self) -> Key {
+        self.key
+    }
+}
+
+impl Identity {
+    pub(crate) fn from_fingerprint(gpg: &mut Gpg, fingerprint: &String) -> Result<Identity, Error> {
+        let key = gpg.get_public_key(fingerprint)?;
+        Ok(Identity {
+            key
+        })
+    }
 }
 
 impl Identity {

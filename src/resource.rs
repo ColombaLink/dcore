@@ -87,21 +87,21 @@ mod tests {
     use std::rc::Rc;
     use yrs::{StateVector, Update};
     use crate::Document;
+    use crate::document::DocumentNewOptions;
     use crate::resource::Resource;
+    use crate::test_utils::get_test_key;
 
     #[test]
     fn init_new() {
         let doc_dir = "./.test/doc/init_new_doc/";
         fs::remove_dir_all(doc_dir).ok();
-        let doc = Document::init(
-            &crate::DocumentInitOptions{
+        let doc = Document::new(
+            DocumentNewOptions {
                 directory: PathBuf::from(doc_dir),
-                identity: crate::document::DocumentInitOptionsIdentity{
-                    fingerprint: String::from("fingerprint"),
-                    public_key: String::from("public_key"),
-                }
-            }
-        ).unwrap();
+                identity_fingerprint: "todo".to_string(),
+                name: String::from("name"),
+            }).unwrap();
+        let mut doc = doc.init(&get_test_key().fingerprint, &get_test_key().public_key).unwrap();
 
 
         let mut resource = Resource::new(String::from("config"));
@@ -119,15 +119,13 @@ mod tests {
     fn resource_from_store() {
         let doc_dir = "./.test/doc/resource_from_store/";
         fs::remove_dir_all(doc_dir).ok();
-        let doc = Document::init(
-            &crate::DocumentInitOptions{
+        let doc = Document::new(
+            DocumentNewOptions {
                 directory: PathBuf::from(doc_dir),
-                identity: crate::document::DocumentInitOptionsIdentity{
-                    fingerprint: String::from("fingerprint"),
-                    public_key: String::from("public_key"),
-                }
-            }
-        ).unwrap();
+                identity_fingerprint: "todo".to_string(),
+                name: String::from("name"),
+            }).unwrap();
+        let mut doc = doc.init(&get_test_key().fingerprint, &get_test_key().public_key).unwrap();
 
 
         let mut resource = Resource::new(String::from("test"));
@@ -145,15 +143,13 @@ mod tests {
     fn subscribe_to_local_transaction_context() {
         let doc_dir = "./.test/doc/resource_from_store/";
         fs::remove_dir_all(doc_dir).ok();
-        let doc = Document::init(
-            &crate::DocumentInitOptions{
+        let doc = Document::new(
+            DocumentNewOptions {
                 directory: PathBuf::from(doc_dir),
-                identity: crate::document::DocumentInitOptionsIdentity{
-                    fingerprint: String::from("fingerprint"),
-                    public_key: String::from("public_key"),
-                }
-            }
-        ).unwrap();
+                identity_fingerprint: "todo".to_string(),
+                name: String::from("name"),
+            }).unwrap();
+        let mut doc = doc.init(&get_test_key().fingerprint, &get_test_key().public_key).unwrap();
 
 
         let mut resource = Resource::new(String::from("test"));

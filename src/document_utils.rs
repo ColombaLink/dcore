@@ -7,12 +7,13 @@ use pgp::{Deserializable, packet, SignatureParser, SignedKeyDetails, SignedPubli
 use pgp::crypto::PublicKeyAlgorithm;
 use pgp::types::{KeyTrait, PublicKeyTrait, SecretKeyTrait};
 use crate::gpg::Gpg;
+use crate::resource::Resource;
 
 struct DocumentUtils;
 
 impl DocumentUtils {
 
-    fn sign_git_commit(mut doc: Document, update: Vec<u8>) -> Result<(), git2::Error> {
+    fn commit_update(mut doc: Document, resource: &Resource, update: Vec<u8>) -> Result<(), git2::Error> {
         let repo = &doc.repository;
         let resource_name = "config";
         let user_public_key = "public_key";
@@ -54,8 +55,6 @@ impl DocumentUtils {
 
         Ok(())
     }
-
-
 
 
 }
