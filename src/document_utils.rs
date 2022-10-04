@@ -1,5 +1,5 @@
 use std::borrow::Borrow;
-use crate::{Doc, Identity};
+use crate::{Document, Identity};
 use std::fmt::Write;
 use git2::Repository;
 use gpgme::HashAlgorithm;
@@ -12,7 +12,7 @@ struct DocumentUtils;
 
 impl DocumentUtils {
 
-    fn sign_git_commit(mut doc: Doc, update: Vec<u8>) -> Result<(), git2::Error> {
+    fn sign_git_commit(mut doc: Document, update: Vec<u8>) -> Result<(), git2::Error> {
         let repo = &doc.repository;
         let resource_name = "config";
         let user_public_key = "public_key";

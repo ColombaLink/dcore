@@ -95,7 +95,7 @@ impl UpdateEvent {
 #[cfg(test)]
 mod test {
     use crate::event::EventHandler;
-    use crate::Doc;
+    use crate::Document;
     use std::sync::atomic::{AtomicU32, Ordering};
     use std::sync::Arc;
 

@@ -4,7 +4,7 @@ use std::error::Error;
 use std::os;
 use std::path::PathBuf;
 use clap::Parser;
-use dcore::doc::{Doc, DocumentInitOptions, DocumentInitOptionsIdentity};
+use dcore::document::{Document, DocumentInitOptions, DocumentInitOptionsIdentity};
 use dcore::Identity;
 
 #[derive(clap::Parser)]
@@ -131,7 +131,7 @@ fn document_create(args: DocumentCreateArgs) -> Result<(), Box<dyn Error>> {
             fingerprint: identity.fingerprint.clone(),
         }
     };
-    let document = Doc::init(&docInitOptions).expect("Failed to create document");
+    let document = Document::init(&docInitOptions).expect("Failed to create document");
     Ok(())
 }
 

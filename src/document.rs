@@ -6,14 +6,14 @@ use crate::Identity;
 use crate::resource::Resource;
 
 
-pub struct Doc {
+pub struct Document {
     pub repository: Repository,
     pub identity: Identity,
     pub gpg: Gpg,
     resources: HashMap<String, Resource>,
 }
 
-unsafe impl Send for Doc {}
+unsafe impl Send for Document {}
 
 pub struct  DocumentInitOptionsIdentity {
     pub fingerprint: String,
@@ -25,9 +25,9 @@ pub struct DocumentInitOptions {
     pub identity: DocumentInitOptionsIdentity,
 }
 
-impl Doc {
+impl Document {
 
-    pub fn init(args: &DocumentInitOptions) -> Result<Doc, Error> {
+    pub fn init(args: &DocumentInitOptions) -> Result<Document, Error> {
         // 1. First we create a bare git repository that build the basis for the dybli document
         let mut data = &mut args.directory.clone();
         data.push(".data");
@@ -70,7 +70,7 @@ impl Doc {
         let mut resources = HashMap::new();
         resources.insert("config".to_string(), resource);
 
-        Ok(Doc {
+        Ok(Document {
             repository: repo,
             identity: Identity::from_key(Key {
                 public: None, // todo: set pk
@@ -91,17 +91,17 @@ mod tests {
     use std::ops::Deref;
     use std::path::PathBuf;
     use lib0::any::Any;
-    use crate::Doc;
+    use crate::Document;
     use crate::resource::Resource;
 
     #[test]
     fn init_new_doc() {
         let doc_dir = "./.test/doc/init_new_doc/";
         fs::remove_dir_all(doc_dir).ok();
-        let mut doc = Doc::init(
+        let mut doc = Document::init(
             &crate::DocumentInitOptions{
                 directory: PathBuf::from(doc_dir),
-                identity: crate::doc::DocumentInitOptionsIdentity{
+                identity: crate::document::DocumentInitOptionsIdentity{
                     fingerprint: String::from("fingerprint"),
                     public_key: String::from("public_key1234"),
                 }
@@ -126,10 +126,10 @@ mod tests {
     fn update_resource() {
         let doc_dir = "./.test/doc/init_new_doc/";
         fs::remove_dir_all(doc_dir).ok();
-        let mut doc = Doc::init(
+        let mut doc = Document::init(
             &crate::DocumentInitOptions{
                 directory: PathBuf::from(doc_dir),
-                identity: crate::doc::DocumentInitOptionsIdentity{
+                identity: crate::document::DocumentInitOptionsIdentity{
                     fingerprint: String::from("fingerprint"),
                     public_key: String::from("public_key"),
                 }

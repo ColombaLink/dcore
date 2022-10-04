@@ -3,7 +3,7 @@ use git2::{BlobWriter, Error, Repository, RepositoryInitOptions};
 use std::path::{PathBuf};
 use yrs::{Transaction, UpdateEvent};
 use crate::gpg::{Gpg, Key};
-use crate::doc::{Doc};
+use crate::document::{Document};
 use crate::event::{EventHandler, Subscription};
 
 pub struct Resource {
@@ -86,17 +86,17 @@ mod tests {
     use std::path::PathBuf;
     use std::rc::Rc;
     use yrs::{StateVector, Update};
-    use crate::Doc;
+    use crate::Document;
     use crate::resource::Resource;
 
     #[test]
     fn init_new() {
         let doc_dir = "./.test/doc/init_new_doc/";
         fs::remove_dir_all(doc_dir).ok();
-        let doc = Doc::init(
+        let doc = Document::init(
             &crate::DocumentInitOptions{
                 directory: PathBuf::from(doc_dir),
-                identity: crate::doc::DocumentInitOptionsIdentity{
+                identity: crate::document::DocumentInitOptionsIdentity{
                     fingerprint: String::from("fingerprint"),
                     public_key: String::from("public_key"),
                 }
@@ -119,10 +119,10 @@ mod tests {
     fn resource_from_store() {
         let doc_dir = "./.test/doc/resource_from_store/";
         fs::remove_dir_all(doc_dir).ok();
-        let doc = Doc::init(
+        let doc = Document::init(
             &crate::DocumentInitOptions{
                 directory: PathBuf::from(doc_dir),
-                identity: crate::doc::DocumentInitOptionsIdentity{
+                identity: crate::document::DocumentInitOptionsIdentity{
                     fingerprint: String::from("fingerprint"),
                     public_key: String::from("public_key"),
                 }
@@ -145,10 +145,10 @@ mod tests {
     fn subscribe_to_local_transaction_context() {
         let doc_dir = "./.test/doc/resource_from_store/";
         fs::remove_dir_all(doc_dir).ok();
-        let doc = Doc::init(
+        let doc = Document::init(
             &crate::DocumentInitOptions{
                 directory: PathBuf::from(doc_dir),
-                identity: crate::doc::DocumentInitOptionsIdentity{
+                identity: crate::document::DocumentInitOptionsIdentity{
                     fingerprint: String::from("fingerprint"),
                     public_key: String::from("public_key"),
                 }
