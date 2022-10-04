@@ -3,7 +3,15 @@ use crate::gpg;
 use crate::gpg::{CreateUserArgs, Gpg, Key};
 
 
-pub struct Identity {}
+pub struct Identity {
+    key: Key,
+}
+
+impl Identity {
+    pub(crate) fn from_key(key: Key) -> Identity {
+        Identity { key }
+    }
+}
 
 const DEFAULT_GPG_HOME: &str = "./gpghome";
 
@@ -15,14 +23,14 @@ fn get_gpg_home(keyring_home_dir: Option<String>) -> String {
 }
 
 impl Identity {
-    pub fn create_identity(keyring_home_dir: Option<String>) -> Result<Key, Error> {
+    pub fn create_identity(keyring_home_dir: Option<String>) -> Result<Identity, Error> {
         let home_dir = get_gpg_home(keyring_home_dir);
 
         let mut gpg = gpg::Gpg::new_with_custom_home(&home_dir);
         let key = gpg.create_key(
             CreateUserArgs{ email: "alice@colomba.link", name: "Alice"}
-        );
-        key
+        ).expect("Could not create the key with the provided options.");
+        Ok(Identity { key: key })
     }
 
     pub fn print_all_identities(keyring_home_dir: Option<String>) -> Result<(), Error> {
@@ -49,6 +57,9 @@ impl Identity {
         Ok(())
     }
 
+    pub fn get_fingerprint(&self) -> String {
+        self.key.fingerprint.clone()
+    }
 }
 
 

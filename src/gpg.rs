@@ -1,3 +1,4 @@
+use std::borrow::BorrowMut;
 use std::str::Utf8Error;
 use std::time::Duration;
 use gpgme::{Context, CreateKeyFlags};
@@ -7,6 +8,7 @@ use crate::gpg::KeyType::EC;
 use std::fmt::Write;
 
 use libp2p::identity::ed25519::Keypair;
+use crate::Identity;
 
 pub struct Gpg {
     context: gpgme::Context
@@ -114,6 +116,23 @@ impl Gpg {
             public: Some(public_key),
             fingerprint: String::from(fingerprint)  })
     }
+
+
+    pub fn sign_string(&mut self, commit: &String, identity: &Identity) -> Result<String, Error> {
+        let signing_key = identity.get_fingerprint();
+        let mut ctx = self.context.borrow_mut();
+
+        let key = ctx.borrow_mut().get_secret_key(signing_key)?;
+        ctx.add_signer(&key)?;
+        let mut output = Vec::new();
+        let signature = ctx.sign_detached(commit.clone(), &mut output);
+
+        if signature.is_err() {
+            return  Err(Error::GpgmeError(signature.unwrap_err()));
+        }
+
+        Ok(String::from(std::str::from_utf8(&output).unwrap()))
+    }
 }
 
 
@@ -125,6 +144,7 @@ mod tests {
     use gpgme::context::Keys;
     use gpgme::PinentryMode::Default;
     use crate::gpg::{CreateUserArgs, Gpg};
+    use crate::Identity;
 
     #[test]
     fn create_new_gpg() {
@@ -186,7 +206,11 @@ mod tests {
 
     #[test]
     fn test_delete_keys() {
-        let mut gpg = Gpg::new();
+        let gpghome = "./.test/gpg/delete_keys/gpghome";
+        std::fs::remove_dir_all(gpghome);
+        std::fs::create_dir_all(gpghome);
+
+        let mut gpg = Gpg::new_with_custom_home(gpghome);
         //let keys = Gpg::get_all_public_keys(gpg.context.borrow_mut()).unwrap();
         let keys = gpg.get_all_public_keys().unwrap();
         for key in keys {
@@ -200,6 +224,26 @@ mod tests {
             thread 'gpg::tests::test_delete_keys' panicked at 'called `Result::unwrap()` on an `Err` value: Error { source: Some("GPGME"), code: 70, description: "Conflicting use" }', src/gpg.rs:138:42
             stack backtrace:
          */
+    }
+
+
+    #[test]
+    fn test_gpg_sign(){
+        let gpghome = "./.test/gpg/sign/gpghome";
+        std::fs::remove_dir_all(gpghome);
+        std::fs::create_dir_all(gpghome);
+
+        let mut gpg = Gpg::new_with_custom_home(gpghome);
+        let key = gpg.create_key(
+            CreateUserArgs{ email: "alice@colomba.link", name: "Alice"}
+        );
+        let key_with_public_key = Gpg::key_with_public_key(&mut gpg, &key.as_ref().expect("a key"));
+
+        let identity = Identity::from_key(key_with_public_key.unwrap());
+        let content = String::from("hello world");
+        let signature = gpg.sign_string(&content, &identity);
+        assert_eq!(signature.is_ok(), true);
+        assert_eq!(signature.unwrap().len(), 228);
     }
 
 }

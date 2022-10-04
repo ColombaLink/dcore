@@ -2,13 +2,14 @@ use std::collections::HashMap;
 use git2::{BlobWriter, Error, Repository, RepositoryInitOptions};
 use std::path::{PathBuf};
 use crate::gpg::{Gpg, Key};
+use crate::Identity;
 use crate::resource::Resource;
 
 
 pub struct Doc {
     pub repository: Repository,
-    identity: Key,
-    gpg: Gpg,
+    pub identity: Identity,
+    pub gpg: Gpg,
     resources: HashMap<String, Resource>,
 }
 
@@ -25,9 +26,6 @@ pub struct DocumentInitOptions {
 }
 
 impl Doc {
-
-
-
 
     pub fn init(args: &DocumentInitOptions) -> Result<Doc, Error> {
         // 1. First we create a bare git repository that build the basis for the dybli document
@@ -74,10 +72,10 @@ impl Doc {
 
         Ok(Doc {
             repository: repo,
-            identity: Key {
+            identity: Identity::from_key(Key {
                 public: None, // todo: set pk
                 fingerprint: args.identity.fingerprint.clone(),
-            },
+            }),
             gpg: Gpg::new(),
             resources
         })
