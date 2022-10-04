@@ -10,6 +10,7 @@ pub struct Resource {
     pub name: String,
     pub store: yrs::Doc,
     local_transaction: Option<EventHandler<UpdateEvent>>,
+    pub local_transaction_subscriptions: HashMap<u32, Subscription<UpdateEvent>>,
 }
 
 
@@ -23,6 +24,7 @@ impl Resource {
             name,
             store,
             local_transaction: None,
+            local_transaction_subscriptions: HashMap::new(),
         }
     }
 
@@ -35,6 +37,7 @@ impl Resource {
             name,
             store,
             local_transaction: None,
+            local_transaction_subscriptions: HashMap::new(),
         }
     }
 
@@ -87,7 +90,7 @@ mod tests {
     use crate::resource::Resource;
 
     #[test]
-    fn init_new_doc() {
+    fn init_new() {
         let doc_dir = "./.test/doc/init_new_doc/";
         fs::remove_dir_all(doc_dir).ok();
         let doc = Doc::init(
@@ -101,9 +104,8 @@ mod tests {
         ).unwrap();
 
 
-        let mut resource = Resource::new(String::from("test"));
-
-        resource.set_resource_meta("test".to_string()).unwrap();
+        let mut resource = Resource::new(String::from("config"));
+        resource.set_resource_meta("config".to_string()).unwrap();
 
         resource.add_local_update(|resource| {
             println!("test");

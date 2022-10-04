@@ -58,7 +58,7 @@ impl<T> Default for EventHandler<T> {
 /// A subscription handle to a custom user-defined callback for an event handler. When dropped,
 /// it will unsubscribe corresponding callback.
 pub struct Subscription<T> {
-    id: SubscriptionId,
+    pub id: SubscriptionId,
     subscriptions: NonNull<Subscriptions<T>>,
 }
 
