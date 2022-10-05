@@ -55,18 +55,18 @@ pub fn create_test_env_with_sample_gpg_key(test_data_path: String) -> (PathBuf, 
         .expect("Could create pgpme context from open pgp protocol");
     context.set_armor(true);
     let gpg_home = std::env::var("GNUPGHOME");
-    if gpg_home.is_ok() {
-        context.set_engine_home_dir(gpg_home.unwrap());
-    }
+    context.set_engine_home_dir(gpg_home.unwrap());
 
-    context.import(get_test_key().secret_key.as_bytes()).unwrap();
-    context.import(get_test_key().public_key.as_bytes()).unwrap();
+    let result1 = context.import(get_test_key().public_key.as_bytes()).unwrap();
+    let result = context.import(get_test_key().secret_key.as_bytes()).unwrap();
 
     let pub_key = context.get_key(get_test_key().fingerprint).unwrap();
     let key = Key {
         fingerprint: get_test_key().fingerprint,
         public: Some(pub_key),
     };
+
+    let pub_key = context.get_secret_key(get_test_key().fingerprint).unwrap();
 
     (doc_dir, key)
 }
@@ -96,3 +96,31 @@ pub fn create_armored_key() -> () {
     context.export(Some(key.fingerprint.clone()), ExportMode::SECRET, &mut sec_data).unwrap();
     println!("{}", String::from_utf8(sec_data).unwrap());
 }
+
+
+/**
+
+for some reason we can not read the secret key if we import from the armored content
+
+called `Result::unwrap()` on an `Err` value: Error { source: Some("GPGME"), code: 16383, description: "End of file" }
+thread 'document::tests::init_new_doc' panicked at 'called `Result::unwrap()` on an `Err` value: Error { source: Some("GPGME"), code: 16383, description: "End of file" }', src/test_utils.rs:69:70
+stack backtrace:
+*/
+
+pub fn create_test_env_with_new_gpg_key(test_data_path: String) -> (PathBuf, Key) {
+    let doc_dir = create_test_env(test_data_path);
+    let mut context = gpgme::Context::from_protocol(gpgme::Protocol::OpenPgp)
+        .expect("Could create pgpme context from open pgp protocol");
+    context.set_armor(true);
+    let gpg_home = std::env::var("GNUPGHOME");
+    context.set_engine_home_dir(gpg_home.unwrap());
+
+    let mut gpg = Gpg::new();
+    let key = gpg.create_key(
+        CreateUserArgs{ email: "alice@colomba.link", name: "Alice"}
+    );
+    let key = Gpg::key_with_public_key(&mut gpg, &key.as_ref().expect("a key")).unwrap();
+
+    (doc_dir, key)
+}
+

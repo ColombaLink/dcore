@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use git2::{BlobWriter, Repository, RepositoryInitOptions};
 use std::path::{PathBuf};
+use crate::document_utils::DocumentUtils;
 use crate::errors::Error;
 use crate::gpg::{Gpg, Key};
 use crate::Identity;
@@ -51,7 +52,7 @@ impl Document {
     }
 
     /// Frist call Document::new(...) then doc.init() to create the config resource
-    pub fn init(self, fingerprint: &String, public_key: &String) -> Result<Document, Error> {
+    pub fn init(mut self, fingerprint: &String, public_key: &String) -> Result<Document, Error> {
         if self.resources.contains_key("config") {
             return Err(Error::Other("Document already initialized because the config resource exists".to_string()));
         }
@@ -68,7 +69,7 @@ impl Document {
 
         resource.set_resource_meta("config".to_string()).unwrap();
 
-        resource.add_local_update(|mut transaction| {
+        let update = resource.add_local_update(|mut transaction| {
 
             let config_root = transaction.get_map("config");
 
@@ -87,6 +88,9 @@ impl Document {
             transaction
         }).unwrap();
 
+
+        &self.commit_update(&update, &resource);
+
         let mut resources = HashMap::new();
         resources.insert("config".to_string(), resource);
 
@@ -102,6 +106,9 @@ impl Document {
         })
     }
 
+    fn commit_update(&self, update: &Vec<u8>, resource: &Resource) {
+        DocumentUtils::commit_update(&self, resource, update.to_owned()).expect("TODO: panic message");
+    }
 }
 
 #[cfg(test)]
@@ -116,29 +123,18 @@ mod tests {
     use crate::document::DocumentNewOptions;
     use crate::gpg::{CreateUserArgs, Gpg, Key};
     use crate::resource::Resource;
-    use crate::test_utils::{create_test_env_with_sample_gpg_key, get_test_key};
+    use crate::test_utils::{create_test_env, create_test_env_with_new_gpg_key, create_test_env_with_sample_gpg_key, get_test_key};
 
-    pub fn create_test_env() -> (PathBuf, Key) {
-        let doc_dir = &PathBuf::from("./.test/doc/new_doc/");
-        fs::remove_dir_all(doc_dir).ok();
-        fs::create_dir_all(doc_dir.as_path()).unwrap();
-        std::env::set_var("GNUPGHOME", doc_dir.join(".keys").as_path());
-        fs::create_dir_all(doc_dir.join(".keys").as_path()).unwrap();
 
-        let mut gpg = Gpg::new();
-        let key = gpg.create_key(
-            CreateUserArgs { email: "alice@colomba.link", name: "Alice" }
-        ).unwrap();
-        (doc_dir.to_path_buf(), key)
-    }
     #[test]
     fn new_doc() {
-        let (doc_dir, key) = create_test_env();
+        let doc_dir = "./.test/doc/new_doc/";
+        create_test_env(doc_dir.to_string());
 
         let mut doc = Document::new(
             DocumentNewOptions {
-                directory: doc_dir.clone(),
-                identity_fingerprint: key.fingerprint,
+                directory: PathBuf::from(doc_dir),
+                identity_fingerprint: get_test_key().fingerprint,
                 name: String::from("name"),
             }).unwrap();
     }
@@ -147,13 +143,15 @@ mod tests {
     #[test]
     fn init_new_doc() {
         let doc_dir = "./.test/doc/init_new_doc/";
-        create_test_env_with_sample_gpg_key(doc_dir.to_string());
-        let doc = Document::new(
+        let (dir, key) = create_test_env_with_new_gpg_key(doc_dir.to_string());
+
+        let mut doc = Document::new(
             DocumentNewOptions {
                 directory: PathBuf::from(doc_dir),
-                identity_fingerprint: get_test_key().fingerprint,
+                identity_fingerprint: key.fingerprint.clone(),
                 name: String::from("test-doc1"),
             }).unwrap();
+
         let mut doc = doc.init(&get_test_key().fingerprint, &get_test_key().public_key).unwrap();
 
         let  r = doc.resources.get("config").unwrap();
