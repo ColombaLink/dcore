@@ -205,6 +205,21 @@ mod tests {
     }
 
 
+    #[test]
+    fn get_email() {
+        create_test_env("./test/gpg/get_email".to_string());
+        let mut gpg = Gpg::new();
+        let key = gpg.create_key(
+            CreateUserArgs{ email: "alice@colomba.link", name: "Alice"}
+        );
+        let k = gpg.get_public_key(key.unwrap().fingerprint.as_str()).unwrap();
+        let id =  k.public.expect("Key should have public key").user_ids().next().unwrap().email().expect("Key should have email").to_string().to_owned();
+        assert_eq!(id, "");
+        //  assert_eq!(key.expect("a key").fingerprint.len(), 40);
+    }
+
+
+
     // https://github.com/orhun/gpg-tui/blob/580d436bf296a0c4c70193f5b31b1334fd771968/src/app/launcher.rs
 
     #[test]

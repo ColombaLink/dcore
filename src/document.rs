@@ -63,7 +63,6 @@ impl Document {
         });
 
         self.identity.get_fingerprint();
-        //self.identity.get_armored_public_key();
 
         resource.local_transaction_subscriptions.insert(sub.id, sub);
 
@@ -79,6 +78,7 @@ impl Document {
                 .insert(&mut transaction, fingerprint.as_str().to_owned(),
                         {
                             let mut user_conf = HashMap::new();
+                            user_conf.insert("alias".to_owned(), fingerprint.as_str().to_owned());
                             user_conf.insert("fingerprint".to_owned(), fingerprint.as_str().to_owned());
                             user_conf.insert("publicKey".to_owned(), public_key.as_str().to_owned());
                             user_conf
