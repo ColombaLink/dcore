@@ -15,6 +15,19 @@ pub struct Gpg {
     context: gpgme::Context
 }
 
+impl Gpg {
+    pub(crate) fn encypt(&mut self, update: &Vec<u8>, identity: &Identity) -> Result<String, Error> {
+        let signing_key = identity.get_fingerprint();
+        let mut ctx = self.context.borrow_mut();
+
+        let key = ctx.borrow_mut().get_key(signing_key)?;
+        let mut ciphertext = Vec::new();
+        ctx.encrypt_with_flags(Some(&key), update, &mut ciphertext, gpgme::EncryptFlags::ALWAYS_TRUST).unwrap();
+        Ok(String::from_utf8(ciphertext).unwrap())
+
+    }
+}
+
 
 pub struct Key {
     /// A de-armored public key
@@ -312,4 +325,36 @@ mod tests {
         assert_eq!(armored_public_key.len(), 388);
     }
 
+
+    #[test]
+    fn test_encryption(){
+        create_test_env("./.test/gpg/sign/gpghome".to_string());
+        let mut gpg = Gpg::new();
+
+        let mut user_id = String::from("Alice <alice@colomba.link>");
+        let key_gen_result = match gpg.context.create_key_with_flags(
+            user_id,
+            "default",
+            Duration::from_secs(0), // did not figure out to import default
+            gpgme::CreateKeyFlags::from(CreateKeyFlags::NOEXPIRE)
+        ) {
+            Ok(r) => Result::Ok(r),
+            Err(e) => Result::Err(Error::GpgmeError(e))
+        }.expect("key must be created");
+
+        let fingerprint = match key_gen_result.fingerprint() {
+            Ok(r) => Result::Ok(String::from(r)),
+            // todo: handle this error properly, don't know how to handle this error..
+            Err(e) => Result::Err(Error::Utf8Error(e.expect("")))
+        }.expect("fingerprint must be defined");
+
+
+
+        let key_with_public_key = gpg.get_public_key(&fingerprint).unwrap();
+        let identity = Identity::from_key(key_with_public_key);
+        let content = String::from("hello world").as_bytes().to_vec();
+        let r =  gpg.encypt(&content, &identity).expect("encryption must work");
+        assert_eq!(r.len(), 699);
+
+    }
 }
