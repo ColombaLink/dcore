@@ -1,6 +1,10 @@
+use std::borrow::{Borrow, BorrowMut};
 use std::collections::HashMap;
-use git2::{BlobWriter, Repository, RepositoryInitOptions};
+use git2::{BlobWriter, BranchType, Repository, RepositoryInitOptions};
 use std::path::{PathBuf};
+use libp2p::futures::TryStreamExt;
+use yrs::Update;
+use yrs::updates::decoder::Decode;
 use crate::document_utils::DocumentUtils;
 use crate::errors::Error;
 use crate::gpg::{Gpg, Key};
@@ -13,7 +17,7 @@ pub struct Document {
     pub repository: Repository,
     pub identity: Identity,
     pub gpg: Gpg,
-    resources: HashMap<String, Resource>,
+    pub resources: HashMap<String, Resource>,
 }
 
 unsafe impl Send for Document {}
@@ -66,7 +70,8 @@ impl Document {
 
         resource.local_transaction_subscriptions.insert(sub.id, sub);
 
-        resource.set_resource_meta("config".to_string()).unwrap();
+        let update = resource.set_resource_meta("config".to_string()).unwrap();
+        &self.commit_update(&update, &resource);
 
         let update = resource.add_local_update(|mut transaction| {
 
@@ -109,6 +114,46 @@ impl Document {
     fn commit_update(&self, update: &Vec<u8>, resource: &Resource) {
         DocumentUtils::commit_update(&self, resource, update.to_owned()).expect("TODO: panic message");
     }
+
+
+    pub fn load(&mut self, fingerprint: &String) -> Result<(), Error> {
+
+
+       let config_logs_head_oids =  self.repository.branches(Some(BranchType::Local)).map_err(|e| Error::GitError(e)).unwrap().filter(|branch| {
+           let log = &branch.as_ref().unwrap().0;
+           let log_name = log.name().unwrap().unwrap().clone();
+           log_name.starts_with("config/")
+       }).map(|log|  {
+           let log = &log.as_ref().unwrap().0;
+           let oid = log.get().target().unwrap().to_owned();
+           oid
+       });
+
+        let mut resource = Resource::new(String::from("config"));
+        let revwalk =  &mut self.repository.revwalk().map_err(|e| Error::GitError(e)).unwrap();
+        revwalk.set_sorting(git2::Sort::REVERSE).map_err(|e| Error::GitError(e)).unwrap();
+        let mut t =   resource.store.transact();
+        for  oid in config_logs_head_oids {
+            revwalk.push(oid).map_err(|e| Error::GitError(e)).unwrap();
+            println!("log: {}", oid.to_string());
+            let updates = revwalk
+                .flat_map(|id| self.repository.find_commit(id.unwrap()))
+                .map(|commit| commit.tree().unwrap())
+                .map(|tree| tree.get_name("update").unwrap().to_object(&self.repository).unwrap())
+                .map(|object| object.peel_to_blob().unwrap())
+                .map(|blob| blob.content().to_vec())
+                .map(|content| Update::decode_v2(content.as_slice()).unwrap());
+
+            let update =  Update::merge_updates(updates);
+            t.apply_update(update);
+        }
+
+        t.commit();
+        self.resources.insert("config".to_string(), resource);
+
+        Ok(())
+    }
+
 }
 
 #[cfg(test)]
@@ -143,7 +188,7 @@ mod tests {
     #[test]
     fn init_new_doc() {
         let doc_dir = "./.test/doc/init_new_doc/";
-        let (dir, key) = create_test_env_with_new_gpg_key(doc_dir.to_string());
+        let (dir, key) = create_test_env_with_sample_gpg_key(doc_dir.to_string());
 
         let mut doc = Document::new(
             DocumentNewOptions {
@@ -168,6 +213,43 @@ mod tests {
             .unwrap();
         assert_eq!(resource, expected);
     }
+
+
+
+    #[test]
+    fn load_doc() {
+        let doc_dir = "./.test/doc/load_doc/";
+        let (dir, key) = create_test_env_with_new_gpg_key(doc_dir.to_string());
+
+        let mut doc = Document::new(
+            DocumentNewOptions {
+                directory: PathBuf::from(doc_dir),
+                identity_fingerprint: key.fingerprint.clone(),
+                name: String::from("test-doc1"),
+            }).unwrap();
+
+        let mut doc = &mut doc.init(&key.fingerprint, &get_test_key().public_key).unwrap();
+
+
+        let doc_to_load =&mut Document::new(
+            DocumentNewOptions {
+                directory: PathBuf::from(doc_dir),
+                identity_fingerprint: key.fingerprint.clone(),
+                name: String::from("test-doc1"),
+            }).unwrap();
+
+        doc_to_load.load(&key.fingerprint).unwrap();
+
+        let  r = doc_to_load.resources.get("config").unwrap();
+        let resource = r.store.transact().get_map("config").to_json();
+
+        let  r = doc.resources.get("config").unwrap();
+        let expected = r.store.transact().get_map("config").to_json();
+
+        assert_eq!(resource, expected);
+
+    }
+
 
     #[test]
     fn update_resource() {

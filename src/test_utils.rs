@@ -66,7 +66,6 @@ pub fn create_test_env_with_sample_gpg_key(test_data_path: String) -> (PathBuf, 
         public: Some(pub_key),
     };
 
-    let pub_key = context.get_secret_key(get_test_key().fingerprint).unwrap();
 
     (doc_dir, key)
 }

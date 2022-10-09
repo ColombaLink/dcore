@@ -93,6 +93,7 @@ impl Gpg {
         write!(user_id, "{} <{}>", user.name, user.email);
         let key_gen_result = match self.context.create_key_with_flags(
             user_id,
+           // "default",
             "ed25519",
             Duration::from_secs(0), // did not figure out to import default
             gpgme::CreateKeyFlags::from(CreateKeyFlags::NOEXPIRE)
@@ -190,6 +191,7 @@ mod tests {
     use gpgme::{Context, CreateKeyFlags, Key};
     use gpgme::context::Keys;
     use gpgme::PinentryMode::Default;
+    use crate::errors::Error;
     use crate::gpg::{CreateUserArgs, Gpg};
     use crate::Identity;
     use crate::test_utils::{create_armored_key, create_test_env, create_test_env_with_sample_gpg_key};
