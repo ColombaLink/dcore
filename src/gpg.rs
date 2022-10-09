@@ -222,7 +222,7 @@ mod tests {
 
     #[test]
     fn get_email() {
-        create_test_env("./test/gpg/get_email".to_string());
+        create_test_env("./.test/gpg/get_email".to_string());
         let mut gpg = Gpg::new();
         let key = gpg.create_key(
             CreateUserArgs{ email: "alice@colomba.link", name: "Alice"}
@@ -239,7 +239,7 @@ mod tests {
 
     #[test]
     fn with_public_key(){
-        create_test_env("./test/gpg/with_public_key".to_string());
+        create_test_env("./.test/gpg/with_public_key".to_string());
         let mut gpg = Gpg::new();
         let key = gpg.create_key(
             CreateUserArgs{ email: "alice@colomba.link", name: "Alice"}
