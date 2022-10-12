@@ -38,12 +38,12 @@ fn get_gpg_home(keyring_home_dir: Option<String>) -> String {
 }
 
 impl Identity {
-    pub fn create_identity(keyring_home_dir: Option<String>) -> Result<Identity, Error> {
+    pub fn create_identity(keyring_home_dir: Option<String>, user_name: &str, user_email: &str) -> Result<Identity, Error> {
         let home_dir = get_gpg_home(keyring_home_dir);
 
         let mut gpg = gpg::Gpg::new_with_custom_home(&home_dir);
         let key = gpg.create_key(
-            CreateUserArgs{ email: "alice@colomba.link", name: "Alice"}
+            CreateUserArgs{ email: user_name, name: user_email}
         ).expect("Could not create the key with the provided options.");
         Ok(Identity { key: key })
     }
@@ -60,9 +60,9 @@ impl Identity {
         }
 
         println!();
-        for key in keys {
-            for (i, uid) in key.user_ids().enumerate() {
-                println!("{}. Key" ,i+1);
+        for (i ,key) in keys.iter().enumerate() {
+            println!("{}. Key" ,i+1);
+            for uid in key.user_ids() {
                 println!("----------------");
                 println!("UID:\t\t {}", uid.id().unwrap());
                 println!("Fingerprint:\t {}", key.fingerprint().unwrap());

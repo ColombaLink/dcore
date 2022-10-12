@@ -48,11 +48,20 @@ struct IdentityCreateArgs {
     /// default is ~/.dybli/keys
     #[clap(short, long)]
     keyring_home:  Option<String>,
+
+    // user name
+    #[clap(short, long)]
+    name:  String,
+
+    // user email
+    #[clap(short, long)]
+    email:  String,
+
 }
 
 fn identity_create(init_args: IdentityCreateArgs) -> Result<(), Box<dyn Error>> {
     println!("Create a new identity.");
-    match Identity::create_identity(init_args.keyring_home) {
+    match Identity::create_identity(init_args.keyring_home, &init_args.name, &init_args.email) {
         Ok(_) => {println!("Created identity.")},
         Err(e) => { print!("{}", e);}
     };
