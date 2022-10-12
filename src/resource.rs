@@ -75,6 +75,11 @@ impl Resource {
         eh.subscribe(f)
     }
 
+    pub fn get_content(&self) -> String {
+        let mut transaction = self.store.transact();
+        let content = transaction.get_map(&self.name).to_json().to_string();
+        content
+    }
 
 
 }

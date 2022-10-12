@@ -23,6 +23,7 @@ enum DcoreSubCommands {
     DocumentCreate(DocumentCreateArgs),
 
     ResourceListAll(ResourceListAllArgs),
+    ResourceCat(ResourceCatArgs),
 }
 
 fn main() {
@@ -34,6 +35,7 @@ fn main() {
         DcoreSubCommands::DocumentCreate(args) => document_create(args),
 
         DcoreSubCommands::ResourceListAll(args) => resource_list_all(args),
+        DcoreSubCommands::ResourceCat(args) => resource_cat(args),
 
     };
 }
@@ -207,3 +209,57 @@ fn resource_list_all(args: ResourceListAllArgs) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
+
+/// Cat the current content of  document
+///
+/// dcore resource-cat
+#[derive(clap::Parser)]
+struct ResourceCatArgs {
+
+    /// keyring home directory
+    /// default is ~/.dybli/keys
+    #[clap(short, long)]
+    keyring_home:  Option<String>,
+
+    /// User identity fingerprint
+    #[clap(short, long)]
+    user_id_fingerprint: String,
+
+    /// Path to the document directory
+    #[clap(short, long)]
+    document_path: String,
+
+    /// Name of the resource
+    #[clap(short, long)]
+    resource_name: String,
+}
+
+fn resource_cat(args: ResourceCatArgs) -> Result<(), Box<dyn Error>> {
+    let directory = PathBuf::from(&args.document_path);
+    let name = directory.file_name().unwrap().to_str().unwrap().to_string();
+    println!("List all resources of document with name:  {}.", &name);
+
+    let identity = Identity::get_identity(dcore::identity::GetIdentityArgs {
+        keyring_home_dir: args.keyring_home,
+        fingerprint: args.user_id_fingerprint
+    }).expect("Failed to get identity with the provided fingerprint");
+
+    let docInitOptions = DocumentNewOptions {
+        directory,
+        name,
+        identity_fingerprint: identity.fingerprint.clone(),
+    };
+
+    // todo: we need to be able to load the doc without the identity
+    //       for the case that a user just want to list them without... makes only sense for unencrypted docs...
+    let mut doc = Document::new(docInitOptions).expect("Failed to create document");
+    doc.load().expect("Failed to load document");
+
+    println!("Resource Content:");
+
+    let resource =  doc.resources.get(&args.resource_name).expect("Resource not found");
+
+    let content = resource.get_content();
+    println!("{}", content);
+    Ok(())
+}
