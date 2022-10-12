@@ -116,7 +116,7 @@ impl Document {
     }
 
 
-    pub fn load(&mut self, fingerprint: &String) -> Result<(), Error> {
+    pub fn load(&mut self) -> Result<(), Error> {
 
 
        let config_logs_head_oids =  self.repository.branches(Some(BranchType::Local)).map_err(|e| Error::GitError(e)).unwrap().filter(|branch| {
@@ -238,7 +238,7 @@ mod tests {
                 name: String::from("test-doc1"),
             }).unwrap();
 
-        doc_to_load.load(&key.fingerprint).unwrap();
+        doc_to_load.load().unwrap();
 
         let  r = doc_to_load.resources.get("config").unwrap();
         let resource = r.store.transact().get_map("config").to_json();

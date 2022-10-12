@@ -22,7 +22,7 @@ enum DcoreSubCommands {
 
     DocumentCreate(DocumentCreateArgs),
 
-   // ResourceListAll(ResourceListAllArgs),
+    ResourceListAll(ResourceListAllArgs),
 }
 
 fn main() {
@@ -32,6 +32,8 @@ fn main() {
         DcoreSubCommands::IdentityListAll(args) => identity_list_all(args),
 
         DcoreSubCommands::DocumentCreate(args) => document_create(args),
+
+        DcoreSubCommands::ResourceListAll(args) => resource_list_all(args),
 
     };
 }
@@ -154,8 +156,8 @@ fn document_create(args: DocumentCreateArgs) -> Result<(), Box<dyn Error>> {
 
 
 
-/*
-/// List all identities
+
+/// List all resources of a document
 ///
 /// dcore resource-list-all --keyring-home ./gpghome
 #[derive(clap::Parser)]
@@ -166,16 +168,42 @@ struct ResourceListAllArgs {
     #[clap(short, long)]
     keyring_home:  Option<String>,
 
+    /// Path to the document directory
+    #[clap(short, long)]
+    document_path: String,
+
+
+    /// User identity fingerprint
+    #[clap(short, long)]
+    user_id_fingerprint: String,
 }
 
 fn resource_list_all(args: ResourceListAllArgs) -> Result<(), Box<dyn Error>> {
-    println!("List all identities.");
-    match Resource::print_all_identities(args.keyring_home) {
-        Ok(_) => {},
-        Err(e) => { print!("{}", e);}
+    let directory = PathBuf::from(&args.document_path);
+    let name = directory.file_name().unwrap().to_str().unwrap().to_string();
+    println!("List all resources of document with name:  {}.", &name);
+
+    let identity = Identity::get_identity(dcore::identity::GetIdentityArgs {
+        keyring_home_dir: args.keyring_home,
+        fingerprint: args.user_id_fingerprint
+    }).expect("Failed to get identity with the provided fingerprint");
+
+    let docInitOptions = DocumentNewOptions {
+        directory,
+        name,
+        identity_fingerprint: identity.fingerprint.clone(),
     };
+
+    // todo: we need to be able to load the doc without the identity
+    //       for the case that a user just want to list them without... makes only sense for unencrypted docs...
+    let mut doc = Document::new(docInitOptions).expect("Failed to create document");
+    doc.load().expect("Failed to load document");
+
+    println!("Resources:");
+    doc.resources.iter().for_each(|(name, resource)| {
+        println!("\t- {}", name);
+    });
 
     Ok(())
 }
 
-*/
