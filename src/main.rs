@@ -4,7 +4,7 @@ use std::error::Error;
 use std::os;
 use std::path::PathBuf;
 use clap::Parser;
-use dcore::document::{Document, DocumentInitOptions, DocumentInitOptionsIdentity};
+use dcore::document::{Document, DocumentInitOptions, DocumentInitOptionsIdentity, DocumentNewOptions};
 use dcore::Identity;
 
 #[derive(clap::Parser)]
@@ -22,7 +22,7 @@ enum DcoreSubCommands {
 
     DocumentCreate(DocumentCreateArgs),
 
-    ResourceListAll(ResourceListAllArgs),
+    // ResourceListAll(ResourceListAllArgs),
 }
 
 fn main() {
@@ -33,7 +33,6 @@ fn main() {
 
         DcoreSubCommands::DocumentCreate(args) => document_create(args),
 
-        DcoreSubCommands::ResourceListAll(args) => resource_create(args),
     };
 }
 
@@ -124,14 +123,19 @@ fn document_create(args: DocumentCreateArgs) -> Result<(), Box<dyn Error>> {
 
     std::fs::create_dir(&args.document_name).expect("Failed to create document directory");
 
-    let docInitOptions = DocumentInitOptions {
-        directory: PathBuf::from(args.document_name),
-        identity: DocumentInitOptionsIdentity {
-            public_key: identity.fingerprint.clone(), // todo: map the key object to the public key string
-            fingerprint: identity.fingerprint.clone(),
-        }
+    let docInitOptions = DocumentNewOptions {
+        directory: PathBuf::from(&args.document_name),
+        name: args.document_name.clone(),
+        identity_fingerprint: identity.fingerprint.clone(),
     };
-    let document = Document::init(&docInitOptions).expect("Failed to create document");
+    let mut doc = Document::new(docInitOptions).expect("Failed to create document");
+
+    let public_key = {
+        let mut gpg = &mut doc.gpg;
+        let public_key = gpg.get_public_key_by_identity(&doc.identity).expect("Failed to get public key by identity");
+        String::from_utf8(public_key).expect("Failed to convert public key to string")
+    };
+    let document = doc.init(&identity.fingerprint, &public_key).expect("Failed to create document");
     Ok(())
 }
 
@@ -139,7 +143,7 @@ fn document_create(args: DocumentCreateArgs) -> Result<(), Box<dyn Error>> {
 
 
 
-
+/*
 /// List all identities
 ///
 /// dcore resource-list-all --keyring-home ./gpghome
@@ -163,3 +167,4 @@ fn resource_list_all(args: ResourceListAllArgs) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
+*/
