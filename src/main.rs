@@ -22,7 +22,7 @@ enum DcoreSubCommands {
 
     DocumentCreate(DocumentCreateArgs),
 
-    // ResourceListAll(ResourceListAllArgs),
+   // ResourceListAll(ResourceListAllArgs),
 }
 
 fn main() {
@@ -144,6 +144,8 @@ fn document_create(args: DocumentCreateArgs) -> Result<(), Box<dyn Error>> {
         let public_key = gpg.get_public_key_by_identity(&doc.identity).expect("Failed to get public key by identity");
         String::from_utf8(public_key).expect("Failed to convert public key to string")
     };
+    println!("Public key: {}", public_key);
+
     let document = doc.init(&identity.fingerprint, &public_key).expect("Failed to create document");
     Ok(())
 }

@@ -28,20 +28,10 @@ impl Identity {
     }
 }
 
-const DEFAULT_GPG_HOME: &str = "./gpghome";
-
-fn get_gpg_home(keyring_home_dir: Option<String>) -> String {
-    match keyring_home_dir {
-        Some(dir) => dir,
-        None => String::from(DEFAULT_GPG_HOME)
-    }
-}
 
 impl Identity {
     pub fn create_identity(keyring_home_dir: Option<String>, user_name: &str, user_email: &str) -> Result<Identity, Error> {
-        let home_dir = get_gpg_home(keyring_home_dir);
-
-        let mut gpg = gpg::Gpg::new_with_custom_home(&home_dir);
+        let mut gpg = gpg::Gpg::new();
         let key = gpg.create_key(
             CreateUserArgs{ email: user_name, name: user_email}
         ).expect("Could not create the key with the provided options.");
@@ -49,8 +39,7 @@ impl Identity {
     }
 
     pub fn print_all_identities(keyring_home_dir: Option<String>) -> Result<(), Error> {
-        let home_dir = get_gpg_home(keyring_home_dir);
-        let mut gpg = gpg::Gpg::new_with_custom_home(&home_dir);
+        let mut gpg = gpg::Gpg::new();
         let keys = gpg.get_all_public_keys().unwrap();
 
         match keys.len() {
@@ -85,9 +74,7 @@ pub struct GetIdentityArgs {
 
 impl Identity {
     pub fn get_identity(args: GetIdentityArgs) -> Result<Key, Error> {
-        let home_dir = get_gpg_home(args.keyring_home_dir);
-
-        let mut gpg = gpg::Gpg::new_with_custom_home(&home_dir);
+        let mut gpg = gpg::Gpg::new();
         let key = gpg.get_public_key(&args.fingerprint);
         key
     }
