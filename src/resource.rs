@@ -16,7 +16,6 @@ pub struct Resource {
 }
 
 
-
 impl Resource {
 
 
@@ -88,12 +87,12 @@ impl Resource {
 
 #[cfg(test)]
 mod tests {
-    
+
     use std::fs;
     use std::path::PathBuf;
-    
 
-    
+
+
 
     use crate::Document;
     use crate::document::DocumentNewOptions;

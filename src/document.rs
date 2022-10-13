@@ -153,6 +153,18 @@ impl Document {
         Ok(())
     }
 
+    pub fn update_resource_with_key_value(&mut self, resource_name: &String, key: &str, value: &str) -> Result<(), Error> {
+        let resource = self.resources.get_mut(resource_name).unwrap();
+        let update = resource.add_local_update(|mut transaction| {
+            let config_root = transaction.get_map("config");
+            config_root.insert(&mut transaction, key, value.to_owned());
+            transaction
+        }).unwrap();
+
+        let resource1 = self.resources.get(resource_name).unwrap();
+        self.commit_update(&update, &resource1);
+        Ok(())
+    }
 }
 
 #[cfg(test)]
