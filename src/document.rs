@@ -2,7 +2,8 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 
 use git2::{BranchType, Repository, RepositoryInitOptions};
-use yrs::{Map, Transaction, Update};
+use yrs::{Map, PrelimMap, Transaction, Update};
+use yrs::types::Value;
 use yrs::updates::decoder::Decode;
 
 use crate::document_utils::DocumentUtils;
@@ -78,16 +79,11 @@ impl Document {
 
             let public_key = public_key.clone();
             let fingerprint = fingerprint.clone();
-            config_root
-                .insert(&mut transaction, fingerprint.as_str().to_owned(),
-                        {
-                            let mut user_conf = HashMap::new();
-                            user_conf.insert("alias".to_owned(), fingerprint.as_str().to_owned());
-                            user_conf.insert("fingerprint".to_owned(), fingerprint.as_str().to_owned());
-                            user_conf.insert("publicKey".to_owned(), public_key.as_str().to_owned());
-                            user_conf
-                        }
-                );
+            config_root.insert(&mut transaction, fingerprint.as_str().to_owned(), PrelimMap::<i32>::from(HashMap::default()));
+            let id_map = config_root.get(fingerprint.as_str().to_owned().as_str()).unwrap().to_ymap().unwrap();
+            id_map.insert(&mut transaction, "fingerprint".to_string(),fingerprint.as_str().to_owned() );
+            id_map.insert(&mut transaction, "public_key".to_string(),public_key.as_str().to_owned() );
+            id_map.insert(&mut transaction, "alias".to_string(),fingerprint.as_str().to_owned() );
 
             transaction
         }).unwrap();
