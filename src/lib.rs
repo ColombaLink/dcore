@@ -1,3 +1,5 @@
+extern crate core;
+
 pub use crate::document::{Document, DocumentInitOptions};
 pub use crate::identity::Identity;
 

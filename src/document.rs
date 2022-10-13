@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 
 use git2::{BranchType, Repository, RepositoryInitOptions};
-use yrs::Update;
+use yrs::{Map, Transaction, Update};
 use yrs::updates::decoder::Decode;
 
 use crate::document_utils::DocumentUtils;
@@ -150,11 +150,88 @@ impl Document {
         Ok(())
     }
 
-    pub fn update_resource_with_key_value(&mut self, resource_name: &String, key: &str, value: &str) -> Result<(), Error> {
+    /*
+fn buildNext<'a>(transaction: &'a mut Transaction, current_map: &'a mut Map, key_parts: &'a mut dyn Iterator<Item=&str>, value: &'a str) -> &mut Map {                                       &mut Map {
+    let key = key_parts.next().unwrap();
+}
+    let next_key = key_parts.next().unwrap();
+    let next_map = current_map.get_map(next_key);
+    if key_parts.next().is_some() {
+    return buildNext(transaction, &mut next_map, key_parts);
+    }
+    let key = key_parts.next().unwrap();
+    current_map.insert(transaction, key.to_owned(), value.to_owned());
+    next_map
+*/
+
+/*
+    fn build_map<'a>(transaction: &'a mut Transaction, current_map: &'a mut Map,  key_parts: &'a mut dyn Iterator<Item=&str>, value: &'a str) -> Map {
+        let key = key_parts.next().unwrap();
+
+        match key_parts.peekable().peek() {
+            Some(_) => {
+                let mut next_map = current_map.get(key);
+                match next_map {
+                    Some(next_value) => {
+                        // todo: this could also not be a map
+                        let mut next_map = next_value.to_ymap().unwrap();
+                        let next_value_map = Document::build_map(transaction, &mut next_map, key_parts, value);
+
+                        next_map.insert(transaction, key.to_owned(), next_value_map.to_owned()).unwrap();
+                        next_map
+                    },
+                    None => {
+                        let mut next_map = HashMap::new();
+                        let m = Self::build_map(transaction, &mut next_map, key_parts, value);
+                        next_map.insert(key.to_owned(), m.to_owned());
+                        next_map
+                    }
+                }
+            },
+            None => {
+                let mut map = HashMap::new();
+                map.insert( key.to_owned(), value.to_owned()).unwrap();
+                map
+            }
+        }
+
+    }
+
+ */
+        /// the key can either be the root or a sub key that are separated by a dot
+    /// e.g. key = "config.users.fingerprint", value = "1234"
+    /// { "config" : { "users" : { "fingerprint" : "1234" } } }
+    pub fn update_resource_with_key_value(&mut self, resource_name: &str, key: &str, value: &str) -> Result<(), Error> {
+
+
         let resource = self.resources.get_mut(resource_name).unwrap();
         let update = resource.add_local_update(|mut transaction| {
-            let config_root = transaction.get_map("config");
-            config_root.insert(&mut transaction, key, value.to_owned());
+
+            let mut key_parts = key.split(".");
+            let root_key = key_parts.next().unwrap();
+            let root_map = transaction.get_map(root_key);
+            let mut current_map = root_map;
+
+            while let Some(key) = key_parts.next() {
+                if key_parts.clone().peekable().peek().is_some() {
+                    // there will be a next key
+                    // check if the current key already exists
+                    match current_map.get(key).unwrap().to_ymap() {
+                        Some(map) => current_map = map,
+                        None => {
+                            // this does not work correctly at the moment: it overwrites the the value...
+                            // todo: fix nested key
+                            let next_map:HashMap<String, String> = HashMap::new();
+                            current_map.insert(&mut transaction, key.to_owned(), next_map);
+                            current_map = current_map.get(key).unwrap().to_ymap().unwrap();
+                        }
+                    }
+                } else {
+                    // last key, so we reached the root
+                    current_map.insert(&mut transaction, key.to_owned(), value.to_owned());
+                }
+            }
+
             transaction
         }).unwrap();
 
@@ -303,6 +380,24 @@ mod tests {
         )
             .unwrap();
         assert_eq!(resource, expected);
+    }
+
+    #[test]
+    fn update_resource_by_key_value() {
+        let doc_dir = "./.test/doc/update_resource_by_key_value/";
+        let (path, key) = create_test_env_with_new_gpg_key(doc_dir.to_string());
+        let doc = Document::new(
+            DocumentNewOptions {
+                directory: PathBuf::from(doc_dir),
+                identity_fingerprint: key.fingerprint,
+                name: String::from("name"),
+            }).unwrap();
+
+        let mut doc = doc.init(&get_test_key().fingerprint, &get_test_key().public_key).unwrap();
+
+        doc.update_resource_with_key_value("config", "39069565EA65A07AE1FBB4BB9B484B5D677BC2EA.fingerprint", "up").unwrap();
+        doc.update_resource_with_key_value("config", "39069565EA65A07AE1FBB4BB9B484B5D677BC2EA.x", "up").unwrap();
+      //  doc.update_resource_with_key_value("config", "39069565EA65A07AE1FBB4BB9B484B5D677BC2EA.x.y", "up").unwrap();
     }
 
 }
