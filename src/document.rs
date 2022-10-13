@@ -209,7 +209,7 @@ fn buildNext<'a>(transaction: &'a mut Transaction, current_map: &'a mut Map, key
 
             let mut key_parts = key.split(".");
             let root_key = key_parts.next().unwrap();
-            let root_map = transaction.get_map(root_key);
+            let root_map = transaction.get_map(resource_name);
             let mut current_map = root_map;
 
             while let Some(key) = key_parts.next() {
