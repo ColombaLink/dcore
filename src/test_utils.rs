@@ -48,9 +48,11 @@ pub fn create_test_env(test_data_path: String) -> PathBuf {
     let doc_dir = &PathBuf::from(test_data_path);
     fs::remove_dir_all(doc_dir).ok();
     fs::create_dir_all(doc_dir.as_path()).unwrap();
-    std::env::set_var("GNUPGHOME", doc_dir.join(".keys").as_path());
-    fs::create_dir_all(doc_dir.join(".keys").as_path()).unwrap();
-    doc_dir.to_path_buf()
+    let key_dir = doc_dir.join(".keys");
+    let key_dir_str = key_dir.to_str().unwrap();
+    std::env::set_var("GNUPGHOME", key_dir_str);
+    fs::create_dir_all(key_dir).unwrap();
+    doc_dir.join(".keys").as_path().to_path_buf()
 }
 
 #[allow(dead_code)]
