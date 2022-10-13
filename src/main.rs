@@ -270,7 +270,7 @@ fn resource_cat(args: ResourceCatArgs) -> Result<(), Box<dyn Error>> {
 
 
 
-/// Set a key value property of a document
+/// Set a key value property of a resource
 ///
 /// dcore resource-set
 #[derive(clap::Parser)]
