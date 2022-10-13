@@ -1,10 +1,12 @@
 //todo: add to a spare cli crate
 
 use std::error::Error;
-use std::os;
+
 use std::path::PathBuf;
+
 use clap::Parser;
-use dcore::document::{Document, DocumentInitOptions, DocumentInitOptionsIdentity, DocumentNewOptions};
+
+use dcore::document::{Document, DocumentNewOptions};
 use dcore::Identity;
 
 #[derive(clap::Parser)]
@@ -28,7 +30,7 @@ enum DcoreSubCommands {
 
 fn main() {
     let options = Args::parse();
-    let result = match options.dcore_sub {
+    let _result = match options.dcore_sub {
         DcoreSubCommands::IdentityCreate(args) => identity_create(args),
         DcoreSubCommands::IdentityListAll(args) => identity_list_all(args),
 
@@ -136,21 +138,21 @@ fn document_create(args: DocumentCreateArgs) -> Result<(), Box<dyn Error>> {
 
     std::fs::create_dir(&args.document_name).expect("Failed to create document directory");
 
-    let docInitOptions = DocumentNewOptions {
+    let doc_init_options = DocumentNewOptions {
         directory: PathBuf::from(&args.document_name),
         name: args.document_name.clone(),
         identity_fingerprint: identity.fingerprint.clone(),
     };
-    let mut doc = Document::new(docInitOptions).expect("Failed to create document");
+    let mut doc = Document::new(doc_init_options).expect("Failed to create document");
 
     let public_key = {
-        let mut gpg = &mut doc.gpg;
+        let gpg = &mut doc.gpg;
         let public_key = gpg.get_public_key_by_identity(&doc.identity).expect("Failed to get public key by identity");
         String::from_utf8(public_key).expect("Failed to convert public key to string")
     };
     println!("Public key: {}", public_key);
 
-    let document = doc.init(&identity.fingerprint, &public_key).expect("Failed to create document");
+    let _document = doc.init(&identity.fingerprint, &public_key).expect("Failed to create document");
     Ok(())
 }
 
@@ -190,7 +192,7 @@ fn resource_list_all(args: ResourceListAllArgs) -> Result<(), Box<dyn Error>> {
         fingerprint: args.user_id_fingerprint
     }).expect("Failed to get identity with the provided fingerprint");
 
-    let docInitOptions = DocumentNewOptions {
+    let doc_init_option = DocumentNewOptions {
         directory,
         name,
         identity_fingerprint: identity.fingerprint.clone(),
@@ -198,11 +200,11 @@ fn resource_list_all(args: ResourceListAllArgs) -> Result<(), Box<dyn Error>> {
 
     // todo: we need to be able to load the doc without the identity
     //       for the case that a user just want to list them without... makes only sense for unencrypted docs...
-    let mut doc = Document::new(docInitOptions).expect("Failed to create document");
+    let mut doc = Document::new(doc_init_option).expect("Failed to create document");
     doc.load().expect("Failed to load document");
 
     println!("Resources:");
-    doc.resources.iter().for_each(|(name, resource)| {
+    doc.resources.iter().for_each(|(name, _resource)| {
         println!("\t- {}", name);
     });
 
@@ -244,7 +246,7 @@ fn resource_cat(args: ResourceCatArgs) -> Result<(), Box<dyn Error>> {
         fingerprint: args.user_id_fingerprint
     }).expect("Failed to get identity with the provided fingerprint");
 
-    let docInitOptions = DocumentNewOptions {
+    let doc_init_option = DocumentNewOptions {
         directory,
         name,
         identity_fingerprint: identity.fingerprint.clone(),
@@ -252,7 +254,7 @@ fn resource_cat(args: ResourceCatArgs) -> Result<(), Box<dyn Error>> {
 
     // todo: we need to be able to load the doc without the identity
     //       for the case that a user just want to list them without... makes only sense for unencrypted docs...
-    let mut doc = Document::new(docInitOptions).expect("Failed to create document");
+    let mut doc = Document::new(doc_init_option).expect("Failed to create document");
     doc.load().expect("Failed to load document");
 
     println!("Resource Content:");

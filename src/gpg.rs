@@ -1,14 +1,15 @@
 use std::borrow::BorrowMut;
-use std::collections::btree_map::Keys;
-use std::str::{from_utf8, Utf8Error};
-use std::time::Duration;
-use gpgme::{Context, CreateKeyFlags, ExportMode};
-use pgp::packet::UserId;
-use crate::errors::Error;
-use crate::gpg::KeyType::EC;
-use std::fmt::Write;
 
-use libp2p::identity::ed25519::Keypair;
+use std::fmt::Write;
+use std::str::{from_utf8};
+use std::time::Duration;
+
+use gpgme::{CreateKeyFlags};
+
+
+
+use crate::errors::Error;
+
 use crate::Identity;
 
 pub struct Gpg {
@@ -16,9 +17,11 @@ pub struct Gpg {
 }
 
 impl Gpg {
+
+    #[allow(dead_code)]
     pub(crate) fn encypt(&mut self, update: &Vec<u8>, identity: &Identity) -> Result<String, Error> {
         let signing_key = identity.get_fingerprint();
-        let mut ctx = self.context.borrow_mut();
+        let ctx = self.context.borrow_mut();
 
         let key = ctx.borrow_mut().get_key(signing_key)?;
         let mut ciphertext = Vec::new();
@@ -42,10 +45,6 @@ pub struct CreateUserArgs<'a> {
 }
 
 
-pub enum KeyType {
-    RSA = 0,
-    EC  = 1
-}
 
 /*
 pub struct Options {
@@ -72,7 +71,7 @@ impl Gpg {
 
         let gpg_home = std::env::var("GNUPGHOME");
         if gpg_home.is_ok() {
-            context.set_engine_home_dir(gpg_home.unwrap());
+            context.set_engine_home_dir(gpg_home.unwrap()).unwrap();
         }
 
         Gpg {
@@ -88,9 +87,9 @@ impl Gpg {
     }
 
 
-    fn create_new_ed25519Key(&mut self, user: CreateUserArgs) -> Result<Key, Error> {
+    fn create_new_ed25519_key(&mut self, user: CreateUserArgs) -> Result<Key, Error> {
         let mut user_id = String::new();
-        write!(user_id, "{} <{}>", user.name, user.email);
+        write!(user_id, "{} <{}>", user.name, user.email).unwrap();
         let key_gen_result = match self.context.create_key_with_flags(
             user_id,
            // "default",
@@ -111,7 +110,7 @@ impl Gpg {
     }
 
     pub fn create_key(&mut self, user: CreateUserArgs) -> Result<Key, Error> {
-       self.create_new_ed25519Key(user)
+       self.create_new_ed25519_key(user)
     }
 
 
@@ -142,7 +141,7 @@ impl Gpg {
 
     pub fn sign_string(&mut self, commit: &String, identity: &Identity) -> Result<String, Error> {
         let signing_key = identity.get_fingerprint();
-        let mut ctx = self.context.borrow_mut();
+        let ctx = self.context.borrow_mut();
 
         let key = ctx.borrow_mut().get_secret_key(signing_key)?;
         ctx.add_signer(&key)?;
@@ -186,16 +185,17 @@ impl Gpg {
 
 #[cfg(test)]
 mod tests {
-    use std::borrow::{Borrow, BorrowMut};
+
     use std::time::Duration;
-    use gpgme::{Context, CreateKeyFlags, Key};
-    use gpgme::context::Keys;
-    use gpgme::PinentryMode::Default;
+
+    use gpgme::{CreateKeyFlags};
+
+
+
     use crate::errors::Error;
     use crate::gpg::{CreateUserArgs, Gpg};
     use crate::Identity;
     use crate::test_utils::{create_armored_key, create_test_env, create_test_env_with_sample_gpg_key};
-
 
     #[test]
     fn create_armored_keys_for_tests() {
@@ -264,7 +264,7 @@ mod tests {
         // 1. generate a key pair with gpg (ed25519)
 
         let mut gpg = Gpg::new();
-        let key = gpg.create_key(
+        let _key = gpg.create_key(
             CreateUserArgs{ email: "alice@colomba.link", name: "Alice"}
         );
 
@@ -319,7 +319,7 @@ mod tests {
 
     #[test]
     fn test_get_armored_public_key(){
-       let (path, key) =  create_test_env_with_sample_gpg_key("./.test/gpg/get_armored_public_key/".to_string());
+       let (_path, key) =  create_test_env_with_sample_gpg_key("./.test/gpg/get_armored_public_key/".to_string());
 
         let mut gpg = Gpg::new();
         let identity = &Identity::from_key(key);
@@ -333,7 +333,7 @@ mod tests {
         create_test_env("./.test/gpg/sign/gpghome".to_string());
         let mut gpg = Gpg::new();
 
-        let mut user_id = String::from("Alice <alice@colomba.link>");
+        let user_id = String::from("Alice <alice@colomba.link>");
         let key_gen_result = match gpg.context.create_key_with_flags(
             user_id,
             "default",

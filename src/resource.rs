@@ -1,10 +1,12 @@
 use std::collections::HashMap;
-use git2::{BlobWriter, Error, Repository, RepositoryInitOptions};
-use std::path::{PathBuf};
+
+
+use git2::{Error};
 use yrs::{Transaction, UpdateEvent};
-use crate::gpg::{Gpg, Key};
-use crate::document::{Document};
+
+
 use crate::event::{EventHandler, Subscription};
+
 
 pub struct Resource {
     pub name: String,
@@ -32,7 +34,7 @@ impl Resource {
         let mut transaction = store.transact();
         let name = transaction.get_map("_resource_meta").get("name").unwrap().to_string();
 
-        let mut remote_transaction = store.transact();
+        let _remote_transaction = store.transact();
         Resource {
             name,
             store,
@@ -62,7 +64,7 @@ impl Resource {
         transaction.commit();
         let eh = self.local_transaction.get_or_insert_with(EventHandler::new);
         eh.publish(&transaction, &UpdateEvent { update: update.clone() });
-        Ok((update))
+        Ok(update)
     }
 
     pub fn observe_local_transactions<F>(&mut self, f: F) -> Subscription<UpdateEvent>
@@ -86,11 +88,13 @@ impl Resource {
 
 #[cfg(test)]
 mod tests {
-    use std::cell::Cell;
+    
     use std::fs;
     use std::path::PathBuf;
-    use std::rc::Rc;
-    use yrs::{StateVector, Update};
+    
+
+    
+
     use crate::Document;
     use crate::document::DocumentNewOptions;
     use crate::resource::Resource;
@@ -106,7 +110,7 @@ mod tests {
                 identity_fingerprint: "todo".to_string(),
                 name: String::from("name"),
             }).unwrap();
-        let mut doc = doc.init(&get_test_key().fingerprint, &get_test_key().public_key).unwrap();
+        let _doc = doc.init(&get_test_key().fingerprint, &get_test_key().public_key).unwrap();
 
 
         let mut resource = Resource::new(String::from("config"));
@@ -130,7 +134,7 @@ mod tests {
                 identity_fingerprint: "todo".to_string(),
                 name: String::from("name"),
             }).unwrap();
-        let mut doc = doc.init(&get_test_key().fingerprint, &get_test_key().public_key).unwrap();
+        let _doc = doc.init(&get_test_key().fingerprint, &get_test_key().public_key).unwrap();
 
 
         let mut resource = Resource::new(String::from("test"));
@@ -154,18 +158,18 @@ mod tests {
                 identity_fingerprint: "todo".to_string(),
                 name: String::from("name"),
             }).unwrap();
-        let mut doc = doc.init(&get_test_key().fingerprint, &get_test_key().public_key).unwrap();
+        let _doc = doc.init(&get_test_key().fingerprint, &get_test_key().public_key).unwrap();
 
 
         let mut resource = Resource::new(String::from("test"));
 
-        let sub = resource.observe_local_transactions(|trans, u| {
+        let _sub = resource.observe_local_transactions(|_trans, _u| {
             println!("update");
         });
 
         resource.set_resource_meta("test".to_string()).unwrap();
 
-        let eh = resource.local_transaction.expect("can not get eventhandler");
+        let _eh = resource.local_transaction.expect("can not get eventhandler");
 
         // todo: find a way to test this
         // the function is private ...

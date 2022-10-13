@@ -1,16 +1,15 @@
-use std::borrow::{Borrow, BorrowMut};
 use std::collections::HashMap;
-use git2::{BlobWriter, BranchType, Repository, RepositoryInitOptions};
-use std::path::{PathBuf};
-use libp2p::futures::TryStreamExt;
+use std::path::PathBuf;
+
+use git2::{BranchType, Repository, RepositoryInitOptions};
 use yrs::Update;
 use yrs::updates::decoder::Decode;
+
 use crate::document_utils::DocumentUtils;
 use crate::errors::Error;
 use crate::gpg::{Gpg, Key};
 use crate::Identity;
 use crate::resource::Resource;
-
 
 pub struct Document {
     pub name: String,
@@ -56,13 +55,13 @@ impl Document {
     }
 
     /// Frist call Document::new(...) then doc.init() to create the config resource
-    pub fn init(mut self, fingerprint: &String, public_key: &String) -> Result<Document, Error> {
+    pub fn init(self, fingerprint: &String, public_key: &String) -> Result<Document, Error> {
         if self.resources.contains_key("config") {
             return Err(Error::Other("Document already initialized because the config resource exists".to_string()));
         }
         let mut resource = Resource::new(String::from("config"));
 
-        let sub = resource.observe_local_transactions(|t, update| {
+        let sub = resource.observe_local_transactions(|_t, _update| {
             println!("Local transaction: ..." );
         });
 
@@ -71,7 +70,7 @@ impl Document {
         resource.local_transaction_subscriptions.insert(sub.id, sub);
 
         let update = resource.set_resource_meta("config".to_string()).unwrap();
-        &self.commit_update(&update, &resource);
+        let _ = &self.commit_update(&update, &resource);
 
         let update = resource.add_local_update(|mut transaction| {
 
@@ -94,7 +93,7 @@ impl Document {
         }).unwrap();
 
 
-        &self.commit_update(&update, &resource);
+        let _ = &self.commit_update(&update, &resource);
 
         let mut resources = HashMap::new();
         resources.insert("config".to_string(), resource);
@@ -129,7 +128,7 @@ impl Document {
            oid
        });
 
-        let mut resource = Resource::new(String::from("config"));
+        let resource = Resource::new(String::from("config"));
         let revwalk =  &mut self.repository.revwalk().map_err(|e| Error::GitError(e)).unwrap();
         revwalk.set_sorting(git2::Sort::REVERSE).map_err(|e| Error::GitError(e)).unwrap();
         let mut t =   resource.store.transact();
@@ -158,25 +157,26 @@ impl Document {
 
 #[cfg(test)]
 mod tests {
-    use std::borrow::BorrowMut;
-    use std::collections::HashMap;
-    use std::fs;
-    use std::ops::Deref;
-    use std::path::PathBuf;
-    use lib0::any::Any;
-    use crate::{Document, gpg};
-    use crate::document::DocumentNewOptions;
-    use crate::gpg::{CreateUserArgs, Gpg, Key};
-    use crate::resource::Resource;
-    use crate::test_utils::{create_test_env, create_test_env_with_new_gpg_key, create_test_env_with_sample_gpg_key, get_test_key};
 
+    use std::collections::HashMap;
+
+
+    use std::path::PathBuf;
+
+    use lib0::any::Any;
+
+    use crate::{Document};
+    use crate::document::DocumentNewOptions;
+
+
+    use crate::test_utils::{create_test_env, create_test_env_with_new_gpg_key, create_test_env_with_sample_gpg_key, get_test_key};
 
     #[test]
     fn new_doc() {
         let doc_dir = "./.test/doc/new_doc/";
         create_test_env(doc_dir.to_string());
 
-        let mut doc = Document::new(
+        let _doc = Document::new(
             DocumentNewOptions {
                 directory: PathBuf::from(doc_dir),
                 identity_fingerprint: get_test_key().fingerprint,
@@ -188,16 +188,16 @@ mod tests {
     #[test]
     fn init_new_doc() {
         let doc_dir = "./.test/doc/init_new_doc/";
-        let (dir, key) = create_test_env_with_sample_gpg_key(doc_dir.to_string());
+        let (_dir, key) = create_test_env_with_sample_gpg_key(doc_dir.to_string());
 
-        let mut doc = Document::new(
+        let doc = Document::new(
             DocumentNewOptions {
                 directory: PathBuf::from(doc_dir),
                 identity_fingerprint: key.fingerprint.clone(),
                 name: String::from("test-doc1"),
             }).unwrap();
 
-        let mut doc = doc.init(&get_test_key().fingerprint, &get_test_key().public_key).unwrap();
+        let doc = doc.init(&get_test_key().fingerprint, &get_test_key().public_key).unwrap();
 
         let  r = doc.resources.get("config").unwrap();
         let resource = r.store.transact().get_map("config").to_json();
@@ -219,16 +219,16 @@ mod tests {
     #[test]
     fn load_doc() {
         let doc_dir = "./.test/doc/load_doc/";
-        let (dir, key) = create_test_env_with_new_gpg_key(doc_dir.to_string());
+        let (_dir, key) = create_test_env_with_new_gpg_key(doc_dir.to_string());
 
-        let mut doc = Document::new(
+        let doc = Document::new(
             DocumentNewOptions {
                 directory: PathBuf::from(doc_dir),
                 identity_fingerprint: key.fingerprint.clone(),
                 name: String::from("test-doc1"),
             }).unwrap();
 
-        let mut doc = &mut doc.init(&key.fingerprint, &get_test_key().public_key).unwrap();
+        let doc = &mut doc.init(&key.fingerprint, &get_test_key().public_key).unwrap();
 
 
         let doc_to_load =&mut Document::new(

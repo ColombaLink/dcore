@@ -1,13 +1,14 @@
-use crate::errors::{Error};
+use crate::errors::Error;
 use crate::gpg;
 use crate::gpg::{CreateUserArgs, Gpg, Key};
-
 
 pub struct Identity {
     key: Key,
 }
 
 impl Identity {
+
+    #[allow(dead_code)]
     pub(crate) fn get_key(self) -> Key {
         self.key
     }
@@ -30,7 +31,7 @@ impl Identity {
 
 
 impl Identity {
-    pub fn create_identity(keyring_home_dir: Option<String>, user_name: &str, user_email: &str) -> Result<Identity, Error> {
+    pub fn create_identity(_keyring_home_dir: Option<String>, user_name: &str, user_email: &str) -> Result<Identity, Error> {
         let mut gpg = gpg::Gpg::new();
         let key = gpg.create_key(
             CreateUserArgs{ email: user_name, name: user_email}
@@ -38,7 +39,7 @@ impl Identity {
         Ok(Identity { key: key })
     }
 
-    pub fn print_all_identities(keyring_home_dir: Option<String>) -> Result<(), Error> {
+    pub fn print_all_identities(_keyring_home_dir: Option<String>) -> Result<(), Error> {
         let mut gpg = gpg::Gpg::new();
         let keys = gpg.get_all_public_keys().unwrap();
 
@@ -82,11 +83,13 @@ impl Identity {
 
 #[cfg(test)]
 mod tests {
-    use std::borrow::{Borrow, BorrowMut};
-    use std::time::Duration;
-    use gpgme::{Context, CreateKeyFlags, Key};
-    use gpgme::context::Keys;
-    use gpgme::PinentryMode::Default;
+
+
+
+
+
+
+
     use crate::gpg::{CreateUserArgs, Gpg};
     use crate::Identity;
     use crate::identity::GetIdentityArgs;

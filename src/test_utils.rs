@@ -1,16 +1,19 @@
 use std::fs;
 use std::path::PathBuf;
+
 use gpgme::ExportMode;
+
 use crate::errors::Error;
 use crate::gpg::{CreateUserArgs, Gpg, Key};
 
-
+#[allow(dead_code)]
 pub struct TestKey {
     pub fingerprint: String,
     pub public_key: String,
     pub secret_key: String,
 }
 
+#[allow(dead_code)]
 pub fn get_test_key() -> TestKey {
     TestKey {
         fingerprint: "39069565EA65A07AE1FBB4BB9B484B5D677BC2EA".to_string(),
@@ -40,6 +43,7 @@ DdkLCFgUsP7kji+TiqIIcs0eg+UliL4P
 
 
 
+#[allow(dead_code)]
 pub fn create_test_env(test_data_path: String) -> PathBuf {
     let doc_dir = &PathBuf::from(test_data_path);
     fs::remove_dir_all(doc_dir).ok();
@@ -49,16 +53,17 @@ pub fn create_test_env(test_data_path: String) -> PathBuf {
     doc_dir.to_path_buf()
 }
 
+#[allow(dead_code)]
 pub fn create_test_env_with_sample_gpg_key(test_data_path: String) -> (PathBuf, Key) {
     let doc_dir = create_test_env(test_data_path);
     let mut context = gpgme::Context::from_protocol(gpgme::Protocol::OpenPgp)
         .expect("Could create pgpme context from open pgp protocol");
     context.set_armor(true);
     let gpg_home = std::env::var("GNUPGHOME");
-    context.set_engine_home_dir(gpg_home.unwrap());
+    context.set_engine_home_dir(gpg_home.unwrap()).unwrap();
 
-    let result1 = context.import(get_test_key().public_key.as_bytes()).unwrap();
-    let result = context.import(get_test_key().secret_key.as_bytes()).unwrap();
+    let _result1 = context.import(get_test_key().public_key.as_bytes()).unwrap();
+    let _result = context.import(get_test_key().secret_key.as_bytes()).unwrap();
 
     let pub_key = context.get_key(get_test_key().fingerprint).unwrap();
     let key = Key {
@@ -70,14 +75,15 @@ pub fn create_test_env_with_sample_gpg_key(test_data_path: String) -> (PathBuf, 
     (doc_dir, key)
 }
 
+#[allow(dead_code)]
 pub fn create_armored_key() -> () {
-    let (path, key) = create_test_env_with_sample_gpg_key("./.test/generate_keys/".to_string());
+    let (_path, key) = create_test_env_with_sample_gpg_key("./.test/generate_keys/".to_string());
     let mut context = gpgme::Context::from_protocol(gpgme::Protocol::OpenPgp)
         .expect("Could create pgpme context from open pgp protocol");
     context.set_armor(true);
     let gpg_home = std::env::var("GNUPGHOME");
     if gpg_home.is_ok() {
-        context.set_engine_home_dir(gpg_home.unwrap());
+        context.set_engine_home_dir(gpg_home.unwrap()).unwrap();
     }
 
     println!("fingerprint {}", key.fingerprint);
@@ -90,7 +96,7 @@ pub fn create_armored_key() -> () {
     context.export_keys(&[pub_key], gpgme::ExportMode::empty(), &mut data).expect("Could not export key");
     println!("{}", String::from_utf8(data).unwrap());
 
-    context.set_key_list_mode(gpgme::KeyListMode::WITH_SECRET);
+    context.set_key_list_mode(gpgme::KeyListMode::WITH_SECRET).unwrap();
     let mut sec_data: Vec<u8> = Vec::new();
     context.export(Some(key.fingerprint.clone()), ExportMode::SECRET, &mut sec_data).unwrap();
     println!("{}", String::from_utf8(sec_data).unwrap());
@@ -106,13 +112,14 @@ thread 'document::tests::init_new_doc' panicked at 'called `Result::unwrap()` on
 stack backtrace:
 */
 
+#[allow(dead_code)]
 pub fn create_test_env_with_new_gpg_key(test_data_path: String) -> (PathBuf, Key) {
     let doc_dir = create_test_env(test_data_path);
     let mut context = gpgme::Context::from_protocol(gpgme::Protocol::OpenPgp)
         .expect("Could create pgpme context from open pgp protocol");
     context.set_armor(true);
     let gpg_home = std::env::var("GNUPGHOME");
-    context.set_engine_home_dir(gpg_home.unwrap());
+    context.set_engine_home_dir(gpg_home.unwrap()).unwrap();
 
     let mut gpg = Gpg::new();
     let key = gpg.create_key(

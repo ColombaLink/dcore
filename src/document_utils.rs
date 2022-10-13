@@ -1,11 +1,4 @@
-use std::borrow::{Borrow, BorrowMut};
-use crate::{Document, Identity};
-use std::fmt::Write;
-use git2::Repository;
-use gpgme::HashAlgorithm;
-use pgp::{Deserializable, packet, SignatureParser, SignedKeyDetails, SignedPublicKey, SignedSecretKey, SignedSecretKeyParser, StandaloneSignature, types};
-use pgp::crypto::PublicKeyAlgorithm;
-use pgp::types::{KeyTrait, PublicKeyTrait, SecretKeyTrait};
+use crate::{Document};
 use crate::gpg::Gpg;
 use crate::resource::Resource;
 
@@ -13,13 +6,13 @@ pub struct DocumentUtils;
 
 impl DocumentUtils {
 
-   pub  fn commit_update(doc: &Document, resource: &Resource, update: Vec<u8>) -> Result<(), git2::Error> {
+   pub  fn commit_update(doc: &Document, _resource: &Resource, update: Vec<u8>) -> Result<(), git2::Error> {
         let repo = &doc.repository;
         let resource_name = "config".to_string();
         let user_fingerprint = &doc.identity.get_fingerprint();
         let log_name = format!("{}/{}", resource_name, user_fingerprint);
         let parents = match  doc.repository.revparse_ext(log_name.as_str()) {
-            Ok((obj, reference)) => {
+            Ok((_obj, reference)) => {
                 let oid =   reference.expect("Found a reference but could not load it.")
                     .target().expect("Found a reference but could not get its target oid.");
                 let head_commit = doc.repository.find_commit(oid).expect("Found a reference but could not load its commit.");
@@ -69,7 +62,7 @@ impl DocumentUtils {
         let mut gpg = Gpg::new();
         let commit_signature = gpg.sign_string(&commit_string, &commit_identity).unwrap();
         let mut commit_copy = commit_signature.clone();
-        let commit_signature_withoute_new_line =  commit_copy.truncate(commit_copy.len() - 1);;
+        let _commit_signature_withoute_new_line =  commit_copy.truncate(commit_copy.len() - 1);
         let new_signed_commit = repo.commit_signed(
             commit_buffer.as_str().unwrap(),
             commit_copy.as_str(),

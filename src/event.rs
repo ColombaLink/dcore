@@ -4,9 +4,12 @@
 
 use std::collections::HashMap;
 use std::ptr::NonNull;
-use yrs::{DeleteSet, StateVector, Transaction};
-use rand::thread_rng;
+
 use rand::RngCore;
+
+use yrs::{Transaction};
+
+
 #[repr(transparent)]
 pub(crate) struct EventHandler<T>(Box<Subscriptions<T>>);
 
@@ -14,6 +17,7 @@ pub type SubscriptionId = u32;
 
 type Subscriptions<T> = HashMap<SubscriptionId, Box<dyn Fn(&Transaction, &T) -> ()>>;
 
+#[allow(dead_code)]
 impl<T> EventHandler<T> {
     pub fn new() -> Self {
         EventHandler(Box::new(Subscriptions::new()))
@@ -79,12 +83,14 @@ impl<T> Drop for Subscription<T> {
 
 /// An update event passed to a callback registered in the event handler. Contains data about the
 /// state of an update.
+#[allow(dead_code)]
 pub struct UpdateEvent {
     /// An update that's about to be applied. Update contains information about all inserted blocks,
     /// which have been send from a remote peer.
     pub update: Vec<u8>,
 }
 
+#[allow(dead_code)]
 impl UpdateEvent {
     pub(crate) fn new(update: Vec<u8>) -> Self {
         UpdateEvent { update }
@@ -94,10 +100,11 @@ impl UpdateEvent {
 
 #[cfg(test)]
 mod test {
-    use crate::event::EventHandler;
-    use crate::Document;
-    use std::sync::atomic::{AtomicU32, Ordering};
     use std::sync::Arc;
+    use std::sync::atomic::{AtomicU32, Ordering};
+
+
+    use crate::event::EventHandler;
 
     #[test]
     fn subscription() {

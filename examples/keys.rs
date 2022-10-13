@@ -1,33 +1,33 @@
-use std::borrow::Borrow;
-use std::collections::HashMap;
-use std::convert::Infallible;
-use std::fs;
+
+
+
+
 use std::fs::File;
-use std::io::{Cursor, Read};
-use git2::{BlobWriter, Error, ObjectType, Repository, RepositoryInitOptions};
-use std::path::{Path, PathBuf};
-use gpgme::{Context, Data, Protocol};
-use libp2p::{identity, PeerId};
+
+use git2::{Repository, RepositoryInitOptions};
+use std::path::{Path};
+use gpgme::{Data};
+
 use libp2p::identity::ed25519::Keypair;
-use openssl::bn::BigNumContext;
-use openssl::ec::{EcGroup, EcKey, EcPoint, PointConversionForm};
-use openssl::ecdsa::EcdsaSig;
-use openssl::encrypt::{Decrypter, Encrypter};
+
+
+
+
 use openssl::error::ErrorStack;
 
-use openssl::sign::{Signer, Verifier};
-use openssl::rsa::{Padding, Rsa};
-use openssl::pkey::{PKey, Private};
-use openssl::hash::MessageDigest;
-use openssl::nid::Nid;
-use openssl::sha::{Sha256, Sha512};
-use openssl::x509::X509;
-use openssl_sys::DSA;
-use pgp::{Deserializable, packet, SignatureParser, SignedKeyDetails, SignedPublicKey, SignedSecretKey, SignedSecretKeyParser, StandaloneSignature, types};
+
+
+
+
+
+
+
+
+use pgp::{Deserializable, packet, SignedPublicKey, SignedSecretKey, StandaloneSignature, types};
 
 use pgp::crypto::{HashAlgorithm, PublicKeyAlgorithm};
-use pgp::types::{Mpi, MpiRef, PublicKeyTrait, SecretKeyTrait, SignedUser};
-use pgp::ser::Serialize;
+use pgp::types::{PublicKeyTrait, SecretKeyTrait};
+
 use pgp::types::KeyTrait;
 
 fn create_keypair() -> Result<(), ErrorStack> {
@@ -35,7 +35,7 @@ fn create_keypair() -> Result<(), ErrorStack> {
 
     let kp = Keypair::generate();
     let pk = kp.public();
-    let secret = kp.secret();
+    let _secret = kp.secret();
 
     let msg = "hello world".as_bytes();
     let sig = kp.sign(msg);
@@ -48,7 +48,7 @@ fn create_keypair() -> Result<(), ErrorStack> {
 
 fn sign_git_commit() -> Result<(), git2::Error> {
     let path = "test/sign-commit/rsa4096/test-repo";
-    let mut init_options = RepositoryInitOptions::new();
+    let init_options = RepositoryInitOptions::new();
     // init_options.bare(true);
     let repo = Repository::init_opts(&path, &init_options)?;
     let oid = git2::Oid::from_str("ad89fbbb303dda2587b2d729700ae74aa0ebe631")?;
@@ -88,7 +88,7 @@ fn sign_git_commit() -> Result<(), git2::Error> {
         git_object_string = git_object_string.clone();
         write!(git_object_string, "{}", commit.message_raw().unwrap());
 
-        let mut git_object_string = String::new();
+        let git_object_string = String::new();
         print!("{}", commit.raw_header().unwrap());
         print!("{}", commit.message_raw().unwrap());
 
@@ -97,7 +97,7 @@ fn sign_git_commit() -> Result<(), git2::Error> {
         let mut hasher = Sha1::new();
         // process input message
         hasher.update(git_object_string);
-        let digest = hasher.finalize();
+        let _digest = hasher.finalize();
 
 
 
@@ -128,14 +128,14 @@ fn sign_git_commit() -> Result<(), git2::Error> {
             &[&commit]
         ).unwrap();
 
-        let commit_string = commit_buffer.as_str();
+        let _commit_string = commit_buffer.as_str();
 
      //   println!("{}", commit_buffer.as_str().unwrap());
         let commit_signature = gpg_sign_string(&String::from(commit_buffer.as_str().unwrap())).unwrap();
         // println!("{}", commit_signature.unwrap());
 
         let mut commit_copy = commit_signature.clone();
-        let commit_signature_withoute_new_line =  commit_copy.truncate(commit_copy.len() - 1);;
+        let _commit_signature_withoute_new_line =  commit_copy.truncate(commit_copy.len() - 1);;
         let new_signed_commit = repo.commit_signed(
             commit_buffer.as_str().unwrap(),
             commit_copy.as_str(),
@@ -151,7 +151,7 @@ fn sign_git_commit() -> Result<(), git2::Error> {
     Ok(())
 }
 
-fn sing_git_commit(commit: String) ->  Result<(String), pgp::errors::Error> {
+fn sing_git_commit(commit: String) ->  Result<String, pgp::errors::Error> {
 
     let f = read_file(Path::new("./test/sign-commit/rsa4096/private.key"));
     let signed_secret_key = SignedSecretKey::from_armor_single(f);
@@ -173,7 +173,7 @@ fn sing_git_commit(commit: String) ->  Result<(String), pgp::errors::Error> {
 
     match verif {
         Ok(_) => println!("verified signature"),
-        Err(e) => println!("signature error")
+        Err(_e) => println!("signature error")
     }
     let now = chrono::Utc::now();
 
@@ -196,7 +196,7 @@ fn sing_git_commit(commit: String) ->  Result<(String), pgp::errors::Error> {
     let armored_signature = standalone_signature.to_armored_string(None);
     signature_str = match armored_signature {
         Ok(s) => s,
-        Err(e) => String::from("error, did not create armored signature string ")
+        Err(_e) => String::from("error, did not create armored signature string ")
     };
 
     Ok(signature_str)
@@ -216,7 +216,7 @@ fn sing_git_commit(commit: String) ->  Result<(String), pgp::errors::Error> {
 fn run() -> Result<(), pgp::errors::Error> {
 
     let f = read_file(Path::new("./test/sign-commit/public.key"));
-    let count = SignedPublicKey::from_armor_single(f);
+    let _count = SignedPublicKey::from_armor_single(f);
     // let count = Message::from_bytes(f);
 
 
@@ -245,7 +245,7 @@ test
             let digest = digest.as_slice();
 
             let new_sig = sec.0.create_signature(passwd_fn, HashAlgorithm::SHA1, digest)?;
-            let verif = sec.0.verify_signature(HashAlgorithm::SHA1, digest, &new_sig);
+            let _verif = sec.0.verify_signature(HashAlgorithm::SHA1, digest, &new_sig);
             println!("..");
         }
     }
@@ -263,7 +263,7 @@ test
                 let digest = DATA;
 
                 let new_sig = sec.0.create_signature(passwd_fn, HashAlgorithm::SHA1, digest )?;
-                let verif = sec.0.verify_signature(HashAlgorithm::SHA1, digest, &new_sig);
+                let _verif = sec.0.verify_signature(HashAlgorithm::SHA1, digest, &new_sig);
                 println!("..");
             }
     }
@@ -291,7 +291,7 @@ iHUEABYIAB0WIQS2NbX7Xtnqc/lTXwocxwMQvjkS1QUCWiC+PgAKCRAcxwMQvjkS
 f+SHxLV2cgZpFLcKEIg0odi8Uxv4WAk=
 =uBdw
 -----END PGP SIGNATURE-----";
-    let mut armor = String::from(can_be_parsed);
+    let armor = String::from(can_be_parsed);
 
 
     let lines: Vec<&str> = armor.lines().collect();
@@ -300,15 +300,15 @@ f+SHxLV2cgZpFLcKEIg0odi8Uxv4WAk=
         print!("{}", header.unwrap());
     }
 
-    let cksum_line = &lines[lines.len() - 2];
+    let _cksum_line = &lines[lines.len() - 2];
 
-    let ok = armor.starts_with("---");
+    let _ok = armor.starts_with("---");
     {
 
         let f = read_file(Path::new("./test/sign-commit/test.sig"));
-        let x = StandaloneSignature::from_armor_single(f);
+        let _x = StandaloneSignature::from_armor_single(f);
 
-        let x1 = StandaloneSignature::from_string(can_be_parsed);
+        let _x1 = StandaloneSignature::from_string(can_be_parsed);
         // is a valid signature
         // https://cirw.in/gpg-decoder/#-----BEGIN%20PGP%20SIGNATURE-----%20iHUEABYIAB0WIQRMjoHoCNhpEvQYKFaoucZpnHKj7wUCYy2/FAAKCRCoucZpnHKj%207w1AAQDuKjDV5vEhjtXve/29N4kDXDauk1BU39j8CiAPDNoWjQD/fEhYV/xcHkky%207Q52WKCquZW2ljhoz3DRhOUfyLi4owg=%20=JXAT%20-----END%20PGP%20SIGNATURE-----
         let git_commit = "-----BEGIN PGP SIGNATURE-----
@@ -329,7 +329,7 @@ f+SHxLV2cgZpFLcKEIg0odi8Uxv4WAk=
 
 
         // can no be parsed
-        let x = StandaloneSignature::from_string(git_commit);
+        let _x = StandaloneSignature::from_string(git_commit);
         println!("...")
     }
 
@@ -411,7 +411,7 @@ test
 
             match verif {
                 Ok(_) => println!("verified signature"),
-                Err(e) => println!("signature error")
+                Err(_e) => println!("signature error")
             }
             let now = chrono::Utc::now();
 
@@ -434,7 +434,7 @@ test
             let armored_signature = standalone_signature.to_armored_string(None);
             let signature_str = match armored_signature {
                 Ok(s) => s,
-                Err(e) => String::from("error, did not create armored signature string ")
+                Err(_e) => String::from("error, did not create armored signature string ")
             };
             println!("{}", signature_str);
             println!("Lets now test if we can parse the armored signature");
@@ -442,8 +442,8 @@ test
             {
                 let signature  = StandaloneSignature::from_string(&signature_str);
                 match signature {
-                    Ok(s) => println!("successfully parsed signature"),
-                    Err(e) => println!("error... while parsing armored signature ")
+                    Ok(_s) => println!("successfully parsed signature"),
+                    Err(_e) => println!("error... while parsing armored signature ")
                 }
             }
 
