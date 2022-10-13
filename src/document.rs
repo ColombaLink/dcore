@@ -385,14 +385,15 @@ mod tests {
         let doc = Document::new(
             DocumentNewOptions {
                 directory: PathBuf::from(doc_dir),
-                identity_fingerprint: key.fingerprint,
+                identity_fingerprint: key.fingerprint.clone(),
                 name: String::from("name"),
             }).unwrap();
 
-        let mut doc = doc.init(&get_test_key().fingerprint, &get_test_key().public_key).unwrap();
+        let mut doc = doc.init(&key.fingerprint, &get_test_key().public_key).unwrap();
 
-        doc.update_resource_with_key_value("config", "39069565EA65A07AE1FBB4BB9B484B5D677BC2EA.fingerprint", "up").unwrap();
-        doc.update_resource_with_key_value("config", "39069565EA65A07AE1FBB4BB9B484B5D677BC2EA.x", "up").unwrap();
+        let prop_key = key.fingerprint.clone() + ".x";
+//        doc.update_resource_with_key_value("config", "39069565EA65A07AE1FBB4BB9B484B5D677BC2EA.fingerprint", "up").unwrap();
+        doc.update_resource_with_key_value("config", prop_key.as_str(), "up").unwrap();
       //  doc.update_resource_with_key_value("config", "39069565EA65A07AE1FBB4BB9B484B5D677BC2EA.x.y", "up").unwrap();
     }
 
