@@ -101,10 +101,7 @@ impl Document {
         Ok(Document {
             name: "name".to_string(),
             repository: self.repository,
-            identity: Identity::from_key(Key {
-                public: None, // todo: set pk
-                fingerprint: "todo_later".to_string(),
-            }),
+            identity: self.identity,
             gpg: Gpg::new(),
             resources
         })
