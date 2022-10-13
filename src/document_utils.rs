@@ -26,6 +26,7 @@ impl DocumentUtils {
         builder.insert("update", update_oid, 0o100644).unwrap();
         let update_tree_oid = builder.write().unwrap();
         let update_tree = repo.find_tree(update_tree_oid).unwrap();
+       // todo: pass signature info from config
         let authors_signature = git2::Signature::now("Alice", "info@colomba.link").unwrap();
 
 
@@ -35,7 +36,7 @@ impl DocumentUtils {
                let commit_buffer = repo.commit_create_buffer(
                    &authors_signature,
                    &authors_signature,
-                   "Test commit...",
+                   "update.",
                    &update_tree,
                      &[&parent],
                ).unwrap();
@@ -45,7 +46,7 @@ impl DocumentUtils {
                let commit_buffer = repo.commit_create_buffer(
                    &authors_signature,
                    &authors_signature,
-                   "Test commit...",
+                   "update.",
                    &update_tree,
                    &[],
                ).unwrap();

@@ -210,20 +210,20 @@ fn buildNext<'a>(transaction: &'a mut Transaction, current_map: &'a mut Map, key
             let mut key_parts = key.split(".");
             let root_key = key_parts.next().unwrap();
             let root_map = transaction.get_map(resource_name);
-            let mut current_map = root_map;
+            let mut current_map = root_map.clone();
 
             while let Some(key) = key_parts.next() {
                 if key_parts.clone().peekable().peek().is_some() {
                     // there will be a next key
                     // check if the current key already exists
                     match current_map.get(key).unwrap().to_ymap() {
-                        Some(map) => current_map = map,
+                        Some(map) => current_map = map.clone(),
                         None => {
                             // this does not work correctly at the moment: it overwrites the the value...
                             // todo: fix nested key
                             let next_map:HashMap<String, String> = HashMap::new();
                             current_map.insert(&mut transaction, key.to_owned(), next_map);
-                            current_map = current_map.get(key).unwrap().to_ymap().unwrap();
+                            current_map = current_map.get(key).unwrap().to_ymap().unwrap().clone();
                         }
                     }
                 } else {

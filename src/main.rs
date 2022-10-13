@@ -132,7 +132,7 @@ fn document_create(args: DocumentCreateArgs) -> Result<(), Box<dyn Error>> {
 
     let identity = Identity::get_identity(dcore::identity::GetIdentityArgs {
         keyring_home_dir: args.keyring_home,
-        fingerprint: args.user_id_fingerprint
+        fingerprint: args.user_id_fingerprint.clone()
     }).expect("Failed to get identity with the provided fingerprint");
 
     // 2. Create the document, and the config resource in the document.
@@ -143,7 +143,7 @@ fn document_create(args: DocumentCreateArgs) -> Result<(), Box<dyn Error>> {
     let doc_init_options = DocumentNewOptions {
         directory: PathBuf::from(&args.document_name),
         name: args.document_name.clone(),
-        identity_fingerprint: identity.fingerprint.clone(),
+        identity_fingerprint: String::from(&args.user_id_fingerprint),
     };
     let mut doc = Document::new(doc_init_options).expect("Failed to create document");
 
@@ -317,9 +317,6 @@ fn resource_set(args: ResourceSetArgs) -> Result<(), Box<dyn Error>> {
     //       for the case that a user just want to list them without... makes only sense for unencrypted docs...
     let mut doc = Document::new(doc_init_option).expect("Failed to create document");
     doc.load().expect("Failed to load document");
-
-    println!("Resource Content:");
-
     doc.update_resource_with_key_value(&args.resource_name, &args.key, &args.value).expect("Failed to update resource");
 
     Ok(())

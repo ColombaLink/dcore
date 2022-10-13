@@ -34,7 +34,7 @@ impl Identity {
     pub fn create_identity(_keyring_home_dir: Option<String>, user_name: &str, user_email: &str) -> Result<Identity, Error> {
         let mut gpg = gpg::Gpg::new();
         let key = gpg.create_key(
-            CreateUserArgs{ email: user_name, name: user_email}
+            CreateUserArgs{ email: user_email, name: user_name }
         ).expect("Could not create the key with the provided options.");
         Ok(Identity { key: key })
     }
