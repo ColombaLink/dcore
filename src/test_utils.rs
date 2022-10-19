@@ -3,6 +3,10 @@ use std::path::PathBuf;
 
 use gpgme::ExportMode;
 use openssl_sys::d2i_PKCS8_PRIV_KEY_INFO;
+use sequoia_openpgp::armor::{Kind, Reader, ReaderMode};
+use sequoia_openpgp::Cert;
+use sequoia_openpgp::parse::Parse;
+use sequoia_openpgp::serialize::MarshalInto;
 
 use crate::errors::Error;
 use crate::gpg::{CreateUserArgs, Gpg, Key};
@@ -126,8 +130,13 @@ pub fn key() -> () {
     let mut data: Vec<u8> = Vec::new();
     context.export_keys(&[pub_key], gpgme::ExportMode::MINIMAL, &mut data).expect("Could not export key");
 
+    let y = &mut data.clone();
+    let mut r = Cert::from_bytes(y);
 
-    println!("{}", String::from_utf8(data).unwrap());
+   // let x = r.unwrap().fingerprint();
+    let x = r.unwrap().keys().next().unwrap().mpis().clone().to_vec().unwrap();
+    println!("fingerprint {}", x.len());
+    // println!("{}", String::from_utf8(data).unwrap());
 
 }
 
