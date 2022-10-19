@@ -195,7 +195,7 @@ mod tests {
     use crate::errors::Error;
     use crate::gpg::{CreateUserArgs, Gpg};
     use crate::Identity;
-    use crate::test_utils::{create_armored_key, create_test_env, create_test_env_with_sample_gpg_key};
+    use crate::test_utils::{create_armored_key, create_test_env, create_test_env_with_sample_gpg_key, key};
 
     #[test]
     fn create_armored_keys_for_tests() {
@@ -358,5 +358,10 @@ mod tests {
         let r =  gpg.encypt(&content, &identity).expect("encryption must work");
         assert_eq!(r.len(), 699);
 
+    }
+
+    #[test]
+    fn test_go(){
+        key()
     }
 }

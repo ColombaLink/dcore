@@ -11,4 +11,5 @@ mod resource;
 mod event;
 mod document_utils;
 mod test_utils;
+mod libp2p_sync;
 

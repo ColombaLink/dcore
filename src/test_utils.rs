@@ -2,6 +2,7 @@ use std::fs;
 use std::path::PathBuf;
 
 use gpgme::ExportMode;
+use openssl_sys::d2i_PKCS8_PRIV_KEY_INFO;
 
 use crate::errors::Error;
 use crate::gpg::{CreateUserArgs, Gpg, Key};
@@ -104,6 +105,31 @@ pub fn create_armored_key() -> () {
     println!("{}", String::from_utf8(sec_data).unwrap());
 }
 
+
+#[allow(dead_code)]
+pub fn key() -> () {
+    let (_path, key) = create_test_env_with_sample_gpg_key("./.test/generate_keys/".to_string());
+    let mut context = gpgme::Context::from_protocol(gpgme::Protocol::OpenPgp)
+        .expect("Could create pgpme context from open pgp protocol");
+    context.set_armor(true);
+    let gpg_home = std::env::var("GNUPGHOME");
+    if gpg_home.is_ok() {
+        context.set_engine_home_dir(gpg_home.unwrap()).unwrap();
+    }
+
+    println!("fingerprint {}", key.fingerprint);
+
+    let pub_key = context
+        .get_key(key.fingerprint.clone())
+        .map_err(|e| Error::GpgmeError(e)).unwrap();
+
+    let mut data: Vec<u8> = Vec::new();
+    context.export_keys(&[pub_key], gpgme::ExportMode::MINIMAL, &mut data).expect("Could not export key");
+
+
+    println!("{}", String::from_utf8(data).unwrap());
+
+}
 
 /**
 
