@@ -1,4 +1,3 @@
-
 use std::str::Utf8Error;
 
 use thiserror::Error;
@@ -12,13 +11,11 @@ pub enum Error {
     Other(String),
 
     #[error("`{0}`")]
-    Utf8Error(#[from]  Utf8Error),
+    Utf8Error(#[from] Utf8Error),
 
     #[error("`{0}`")]
-    GpgmeError(#[from]  gpgme::Error),
+    GpgmeError(#[from] gpgme::Error),
 
     #[error("`{0}`")]
-    GitError(#[from]  git2::Error),
-
-
+    GitError(#[from] git2::Error),
 }

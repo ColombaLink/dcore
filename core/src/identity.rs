@@ -7,7 +7,6 @@ pub struct Identity {
 }
 
 impl Identity {
-
     #[allow(dead_code)]
     pub(crate) fn get_key(self) -> Key {
         self.key
@@ -17,9 +16,7 @@ impl Identity {
 impl Identity {
     pub(crate) fn from_fingerprint(gpg: &mut Gpg, fingerprint: &String) -> Result<Identity, Error> {
         let key = gpg.get_public_key(fingerprint)?;
-        Ok(Identity {
-            key
-        })
+        Ok(Identity { key })
     }
 }
 
@@ -29,13 +26,19 @@ impl Identity {
     }
 }
 
-
 impl Identity {
-    pub fn create_identity(_keyring_home_dir: Option<String>, user_name: &str, user_email: &str) -> Result<Identity, Error> {
+    pub fn create_identity(
+        _keyring_home_dir: Option<String>,
+        user_name: &str,
+        user_email: &str,
+    ) -> Result<Identity, Error> {
         let mut gpg = gpg::Gpg::new();
-        let key = gpg.create_key(
-            CreateUserArgs{ email: user_email, name: user_name }
-        ).expect("Could not create the key with the provided options.");
+        let key = gpg
+            .create_key(CreateUserArgs {
+                email: user_email,
+                name: user_name,
+            })
+            .expect("Could not create the key with the provided options.");
         Ok(Identity { key: key })
     }
 
@@ -46,12 +49,12 @@ impl Identity {
         match keys.len() {
             0 => println!("No keys found"),
             1 => println!("Found 1 key"),
-            n => println!("Found {} keys", n)
+            n => println!("Found {} keys", n),
         }
 
         println!();
-        for (i ,key) in keys.iter().enumerate() {
-            println!("{}. Key" ,i+1);
+        for (i, key) in keys.iter().enumerate() {
+            println!("{}. Key", i + 1);
             for uid in key.user_ids() {
                 println!("----------------");
                 println!("UID:\t\t {}", uid.id().unwrap());
@@ -66,7 +69,6 @@ impl Identity {
         self.key.fingerprint.clone()
     }
 }
-
 
 pub struct GetIdentityArgs {
     pub keyring_home_dir: Option<String>,
@@ -84,15 +86,9 @@ impl Identity {
 #[cfg(test)]
 mod tests {
 
-
-
-
-
-
-
     use crate::gpg::{CreateUserArgs, Gpg};
-    use crate::Identity;
     use crate::identity::GetIdentityArgs;
+    use crate::Identity;
 
     #[test]
     fn get_identity() {
@@ -101,14 +97,18 @@ mod tests {
         std::fs::create_dir_all(gpghome);
 
         let mut gpg = Gpg::new_with_custom_home("./.test/identity/get_identity/gpghome");
-        let key = gpg.create_key(
-            CreateUserArgs{ email: "alice@colomba.link", name: "Alice"}
-        ).expect("create key");
+        let key = gpg
+            .create_key(CreateUserArgs {
+                email: "alice@colomba.link",
+                name: "Alice",
+            })
+            .expect("create key");
 
-        let identity = Identity::get_identity(GetIdentityArgs{
+        let identity = Identity::get_identity(GetIdentityArgs {
             keyring_home_dir: Some(String::from(gpghome)),
-            fingerprint: key.fingerprint.clone()
-        }).expect("get identity");
+            fingerprint: key.fingerprint.clone(),
+        })
+        .expect("get identity");
 
         assert_eq!(key.fingerprint, identity.fingerprint);
     }

@@ -10,7 +10,10 @@ use dcore::document::{Document, DocumentNewOptions};
 use dcore::Identity;
 
 #[derive(clap::Parser)]
-#[clap(author = "Fabrizio Parrillo <fabrizio.parrillo@colomba.link>", version = "v0.0.1")]
+#[clap(
+    author = "Fabrizio Parrillo <fabrizio.parrillo@colomba.link>",
+    version = "v0.0.1"
+)]
 
 struct Args {
     #[clap(subcommand)]
@@ -40,38 +43,37 @@ fn main() {
         DcoreSubCommands::ResourceListAll(args) => resource_list_all(args),
         DcoreSubCommands::ResourceCat(args) => resource_cat(args),
         DcoreSubCommands::ResourceSet(args) => resource_set(args),
-
     };
 }
-
-
 
 /// Create a new identity
 ///
 /// dcore identity-create --keyring-home ./gpghome
 #[derive(clap::Parser)]
 struct IdentityCreateArgs {
-
     /// keyring home directory
     /// default is ~/.dybli/keys
     #[clap(short, long)]
-    keyring_home:  Option<String>,
+    keyring_home: Option<String>,
 
     // user name
     #[clap(short, long)]
-    name:  String,
+    name: String,
 
     // user email
     #[clap(short, long)]
-    email:  String,
-
+    email: String,
 }
 
 fn identity_create(init_args: IdentityCreateArgs) -> Result<(), Box<dyn Error>> {
     println!("Create a new identity.");
     match Identity::create_identity(init_args.keyring_home, &init_args.name, &init_args.email) {
-        Ok(_) => {println!("Created identity.")},
-        Err(e) => { print!("{}", e);}
+        Ok(_) => {
+            println!("Created identity.")
+        }
+        Err(e) => {
+            print!("{}", e);
+        }
     };
 
     Ok(())
@@ -82,25 +84,23 @@ fn identity_create(init_args: IdentityCreateArgs) -> Result<(), Box<dyn Error>> 
 /// dcore identity-list-all --keyring-home ./gpghome
 #[derive(clap::Parser)]
 struct IdentityListAllArgs {
-
     /// keyring home directory
     /// default is ~/.dybli/keys
     #[clap(short, long)]
-    keyring_home:  Option<String>,
+    keyring_home: Option<String>,
 }
 
 fn identity_list_all(args: IdentityListAllArgs) -> Result<(), Box<dyn Error>> {
     println!("List all identities.");
     match Identity::print_all_identities(args.keyring_home) {
-        Ok(_) => {},
-        Err(e) => { print!("{}", e);}
+        Ok(_) => {}
+        Err(e) => {
+            print!("{}", e);
+        }
     };
 
     Ok(())
 }
-
-
-
 
 /// Create a document
 ///
@@ -110,11 +110,10 @@ fn identity_list_all(args: IdentityListAllArgs) -> Result<(), Box<dyn Error>> {
 /// dcore document-create --keyring-home ./gpghome
 #[derive(clap::Parser)]
 struct DocumentCreateArgs {
-
     /// keyring home directory
     /// default is ~/.dybli/keys
     #[clap(short, long)]
-    keyring_home:  Option<String>,
+    keyring_home: Option<String>,
 
     /// Document name
     #[clap(short, long)]
@@ -123,7 +122,6 @@ struct DocumentCreateArgs {
     /// User identity fingerprint
     #[clap(short, long)]
     user_id_fingerprint: String,
-
 }
 
 fn document_create(args: DocumentCreateArgs) -> Result<(), Box<dyn Error>> {
@@ -132,8 +130,9 @@ fn document_create(args: DocumentCreateArgs) -> Result<(), Box<dyn Error>> {
 
     let identity = Identity::get_identity(dcore::identity::GetIdentityArgs {
         keyring_home_dir: args.keyring_home,
-        fingerprint: args.user_id_fingerprint.clone()
-    }).expect("Failed to get identity with the provided fingerprint");
+        fingerprint: args.user_id_fingerprint.clone(),
+    })
+    .expect("Failed to get identity with the provided fingerprint");
 
     // 2. Create the document, and the config resource in the document.
     //    The config resource contains the document name and the user identity fingerprint + public key.
@@ -149,35 +148,32 @@ fn document_create(args: DocumentCreateArgs) -> Result<(), Box<dyn Error>> {
 
     let public_key = {
         let gpg = &mut doc.gpg;
-        let public_key = gpg.get_public_key_by_identity(&doc.identity).expect("Failed to get public key by identity");
+        let public_key = gpg
+            .get_public_key_by_identity(&doc.identity)
+            .expect("Failed to get public key by identity");
         String::from_utf8(public_key).expect("Failed to convert public key to string")
     };
     println!("Public key: {}", public_key);
 
-    let _document = doc.init(&identity.fingerprint, &public_key).expect("Failed to create document");
+    let _document = doc
+        .init(&identity.fingerprint, &public_key)
+        .expect("Failed to create document");
     Ok(())
 }
-
-
-
-
-
 
 /// List all resources of a document
 ///
 /// dcore resource-list-all --keyring-home ./gpghome
 #[derive(clap::Parser)]
 struct ResourceListAllArgs {
-
     /// keyring home directory
     /// default is ~/.dybli/keys
     #[clap(short, long)]
-    keyring_home:  Option<String>,
+    keyring_home: Option<String>,
 
     /// Path to the document directory
     #[clap(short, long)]
     document_path: String,
-
 
     /// User identity fingerprint
     #[clap(short, long)]
@@ -191,8 +187,9 @@ fn resource_list_all(args: ResourceListAllArgs) -> Result<(), Box<dyn Error>> {
 
     let identity = Identity::get_identity(dcore::identity::GetIdentityArgs {
         keyring_home_dir: args.keyring_home,
-        fingerprint: args.user_id_fingerprint
-    }).expect("Failed to get identity with the provided fingerprint");
+        fingerprint: args.user_id_fingerprint,
+    })
+    .expect("Failed to get identity with the provided fingerprint");
 
     let doc_init_option = DocumentNewOptions {
         directory,
@@ -213,17 +210,15 @@ fn resource_list_all(args: ResourceListAllArgs) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-
 /// Cat the current content of  document
 ///
 /// dcore resource-cat
 #[derive(clap::Parser)]
 struct ResourceCatArgs {
-
     /// keyring home directory
     /// default is ~/.dybli/keys
     #[clap(short, long)]
-    keyring_home:  Option<String>,
+    keyring_home: Option<String>,
 
     /// User identity fingerprint
     #[clap(short, long)]
@@ -245,8 +240,9 @@ fn resource_cat(args: ResourceCatArgs) -> Result<(), Box<dyn Error>> {
 
     let identity = Identity::get_identity(dcore::identity::GetIdentityArgs {
         keyring_home_dir: args.keyring_home,
-        fingerprint: args.user_id_fingerprint
-    }).expect("Failed to get identity with the provided fingerprint");
+        fingerprint: args.user_id_fingerprint,
+    })
+    .expect("Failed to get identity with the provided fingerprint");
 
     let doc_init_option = DocumentNewOptions {
         directory,
@@ -261,21 +257,21 @@ fn resource_cat(args: ResourceCatArgs) -> Result<(), Box<dyn Error>> {
 
     println!("Resource Content:");
 
-    let resource =  doc.resources.get(&args.resource_name).expect("Resource not found");
+    let resource = doc
+        .resources
+        .get(&args.resource_name)
+        .expect("Resource not found");
 
     let content = resource.get_content();
-    println!("{}", content );
+    println!("{}", content);
     Ok(())
 }
-
-
 
 /// Set a key value property of a resource
 ///
 /// dcore resource-set
 #[derive(clap::Parser)]
 struct ResourceSetArgs {
-
     /// User identity fingerprint
     #[clap(short, long)]
     user_id_fingerprint: String,
@@ -300,12 +296,16 @@ struct ResourceSetArgs {
 fn resource_set(args: ResourceSetArgs) -> Result<(), Box<dyn Error>> {
     let directory = PathBuf::from(&args.document_path);
     let name = directory.file_name().unwrap().to_str().unwrap().to_string();
-    println!("Set a property with key \"{}\" to value \"{}\" for resource {}.", &args.key, &args.value, &args.resource_name);
+    println!(
+        "Set a property with key \"{}\" to value \"{}\" for resource {}.",
+        &args.key, &args.value, &args.resource_name
+    );
 
     let identity = Identity::get_identity(dcore::identity::GetIdentityArgs {
         keyring_home_dir: None,
-        fingerprint: args.user_id_fingerprint
-    }).expect("Failed to get identity with the provided fingerprint");
+        fingerprint: args.user_id_fingerprint,
+    })
+    .expect("Failed to get identity with the provided fingerprint");
 
     let doc_init_option = DocumentNewOptions {
         directory,
@@ -317,7 +317,8 @@ fn resource_set(args: ResourceSetArgs) -> Result<(), Box<dyn Error>> {
     //       for the case that a user just want to list them without... makes only sense for unencrypted docs...
     let mut doc = Document::new(doc_init_option).expect("Failed to create document");
     doc.load().expect("Failed to load document");
-    doc.update_resource_with_key_value(&args.resource_name, &args.key, &args.value).expect("Failed to update resource");
+    doc.update_resource_with_key_value(&args.resource_name, &args.key, &args.value)
+        .expect("Failed to update resource");
 
     Ok(())
 }

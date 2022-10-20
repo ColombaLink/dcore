@@ -1,14 +1,14 @@
 use futures::{channel::mpsc, prelude::*};
-use libp2p::{identity, mplex, Multiaddr, noise, PeerId, ping, Swarm, tcp, yamux};
+use libp2p::{identity, mplex, noise, ping, tcp, yamux, Multiaddr, PeerId, Swarm};
 //use quickcheck::*;
-use rand::prelude::*;
-use std::{num::NonZeroU8, time::Duration};
+use crate::libp2p_sync::tcp::TcpTransport;
 use libp2p::core::muxing::StreamMuxerBox;
 use libp2p::core::{transport, upgrade};
 use libp2p::swarm::{DummyBehaviour, KeepAlive, SwarmEvent};
 use libp2p::tcp::GenTcpConfig;
-use crate::libp2p_sync::tcp::TcpTransport;
 use libp2p::Transport;
+use rand::prelude::*;
+use std::{num::NonZeroU8, time::Duration};
 #[test]
 fn ping_pong() {
     fn prop(count: NonZeroU8, muxer: MuxerChoice) {
@@ -36,9 +36,9 @@ fn ping_pong() {
                 match swarm1.select_next_some().await {
                     SwarmEvent::NewListenAddr { address, .. } => tx.send(address).await.unwrap(),
                     SwarmEvent::Behaviour(ping::Event {
-                                              peer,
-                                              result: Ok(ping::Success::Ping { rtt }),
-                                          }) => {
+                        peer,
+                        result: Ok(ping::Success::Ping { rtt }),
+                    }) => {
                         count1 -= 1;
                         if count1 == 0 {
                             return (pid1.clone(), peer, rtt);
@@ -59,9 +59,9 @@ fn ping_pong() {
             loop {
                 match swarm2.select_next_some().await {
                     SwarmEvent::Behaviour(ping::Event {
-                                              peer,
-                                              result: Ok(ping::Success::Ping { rtt }),
-                                          }) => {
+                        peer,
+                        result: Ok(ping::Success::Ping { rtt }),
+                    }) => {
                         count2 -= 1;
                         if count2 == 0 {
                             return (pid2.clone(), peer, rtt);
@@ -113,9 +113,9 @@ fn max_failures() {
                 match swarm1.select_next_some().await {
                     SwarmEvent::NewListenAddr { address, .. } => tx.send(address).await.unwrap(),
                     SwarmEvent::Behaviour(ping::Event {
-                                              result: Ok(ping::Success::Ping { .. }),
-                                              ..
-                                          }) => {
+                        result: Ok(ping::Success::Ping { .. }),
+                        ..
+                    }) => {
                         count1 = 0; // there may be an occasional success
                     }
                     SwarmEvent::Behaviour(ping::Event { result: Err(_), .. }) => {
@@ -135,9 +135,9 @@ fn max_failures() {
             loop {
                 match swarm2.select_next_some().await {
                     SwarmEvent::Behaviour(ping::Event {
-                                              result: Ok(ping::Success::Ping { .. }),
-                                              ..
-                                          }) => {
+                        result: Ok(ping::Success::Ping { .. }),
+                        ..
+                    }) => {
                         count2 = 0; // there may be an occasional success
                     }
                     SwarmEvent::Behaviour(ping::Event { result: Err(_), .. }) => {
@@ -193,9 +193,9 @@ fn unsupported_doesnt_fail() {
         loop {
             match swarm2.select_next_some().await {
                 SwarmEvent::Behaviour(ping::Event {
-                                          result: Err(ping::Failure::Unsupported),
-                                          ..
-                                      }) => {
+                    result: Err(ping::Failure::Unsupported),
+                    ..
+                }) => {
                     swarm2.disconnect_peer_id(peer1_id).unwrap();
                 }
                 SwarmEvent::ConnectionClosed { cause: Some(e), .. } => {

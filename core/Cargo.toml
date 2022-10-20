@@ -14,10 +14,12 @@ gpgme = "0.10.0"
 gpgme-sys = "0.10.0"
 thiserror = "1.0.37"
 der = "0.6.0"
+fs_extra = "1.2.0"
 [dependencies.sequoia-openpgp]
 version = "*"
 default-features = false
 features = ["crypto-nettle"]
+
 
 [dependencies.lib0]
 version = "0.12.0"

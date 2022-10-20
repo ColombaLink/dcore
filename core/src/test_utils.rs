@@ -1,10 +1,11 @@
+use fs_extra::dir::CopyOptions;
 use std::fs;
 use std::path::PathBuf;
 
 use gpgme::ExportMode;
-use sequoia_openpgp::Cert;
 use sequoia_openpgp::parse::Parse;
 use sequoia_openpgp::serialize::MarshalInto;
+use sequoia_openpgp::Cert;
 
 use crate::errors::Error;
 use crate::gpg::{CreateUserArgs, Gpg, Key};
@@ -28,7 +29,8 @@ o4wKjQi0GkFsaWNlIDxhbGljZUBjb2xvbWJhLmxpbms+iJAEExYIADgWIQQ5BpVl
 gAAKCRCbSEtdZ3vC6hwcAP9sPv78aC+t4MCasarWYv9FMtJ3aZMgpZchCCJD0b49
 owEA9DSYX43Sf2btvmjjTRvmjSDdG/CzZ11/FZwCbRlJXws=
 =JSAK
------END PGP PUBLIC KEY BLOCK-----"#.to_string(),
+-----END PGP PUBLIC KEY BLOCK-----"#
+            .to_string(),
         secret_key: r#"-----BEGIN PGP PRIVATE KEY BLOCK-----
 
 lFgEYzxc1RYJKwYBBAHaRw8BAQdAHSpKLDT9Gjjl/Nl5VQGkhiq5MegUoBJpAQ5H
@@ -38,20 +40,17 @@ x3X9CtQFAmM8XNUCGwMFCwkIBwIGFQoJCAsCBBYCAwECHgECF4AACgkQB6fYx3X9
 CtThegD/b+aKV7KIZI6N3vLEoQay/sAgni0MJZkUR1ru4YiPK60A/3t1kGm+TIod
 DdkLCFgUsP7kji+TiqIIcs0eg+UliL4P
 =+mUj
------END PGP PRIVATE KEY BLOCK-----"#.to_string(),
+-----END PGP PRIVATE KEY BLOCK-----"#
+            .to_string(),
     }
 }
 
-
-
-
-
 #[allow(dead_code)]
-pub fn create_test_env(test_data_path: String) -> PathBuf {
+pub fn create_test_env(test_data_path: &str) -> PathBuf {
     let doc_dir = &PathBuf::from(test_data_path);
     fs::remove_dir_all(doc_dir).ok();
     fs::create_dir_all(doc_dir.as_path()).unwrap();
-    let key_dir = doc_dir.join(".keys");
+    let key_dir = doc_dir.join(".key");
     let key_dir_str = key_dir.to_str().unwrap();
     std::env::set_var("GNUPGHOME", key_dir_str);
     fs::create_dir_all(key_dir).unwrap();
@@ -60,22 +59,27 @@ pub fn create_test_env(test_data_path: String) -> PathBuf {
 
 #[allow(dead_code)]
 pub fn create_test_env_with_sample_gpg_key(test_data_path: String) -> (PathBuf, Key) {
-    let doc_dir = create_test_env(test_data_path);
+    let doc_dir = create_test_env(&test_data_path);
     let mut context = gpgme::Context::from_protocol(gpgme::Protocol::OpenPgp)
         .expect("Could create pgpme context from open pgp protocol");
     context.set_armor(true);
     let gpg_home = std::env::var("GNUPGHOME");
     context.set_engine_home_dir(gpg_home.unwrap()).unwrap();
-
-    let _result1 = context.import(get_test_key().public_key.as_bytes()).unwrap();
-    let _result = context.import(get_test_key().secret_key.as_bytes()).unwrap();
+    context
+        .set_key_list_mode(gpgme::KeyListMode::WITH_SECRET)
+        .unwrap();
+    let _result1 = context
+        .import(get_test_key().public_key.as_bytes())
+        .unwrap();
+    let _result = context
+        .import(get_test_key().secret_key.as_bytes())
+        .unwrap();
 
     let pub_key = context.get_key(get_test_key().fingerprint).unwrap();
     let key = Key {
         fingerprint: get_test_key().fingerprint,
         public: Some(pub_key),
     };
-
 
     (doc_dir, key)
 }
@@ -95,18 +99,28 @@ pub fn create_armored_key() -> () {
 
     let pub_key = context
         .get_key(key.fingerprint.clone())
-        .map_err(|e| Error::GpgmeError(e)).unwrap();
+        .map_err(|e| Error::GpgmeError(e))
+        .unwrap();
 
     let mut data: Vec<u8> = Vec::new();
-    context.export_keys(&[pub_key], gpgme::ExportMode::empty(), &mut data).expect("Could not export key");
+    context
+        .export_keys(&[pub_key], gpgme::ExportMode::empty(), &mut data)
+        .expect("Could not export key");
     println!("{}", String::from_utf8(data).unwrap());
 
-    context.set_key_list_mode(gpgme::KeyListMode::WITH_SECRET).unwrap();
+    context
+        .set_key_list_mode(gpgme::KeyListMode::WITH_SECRET)
+        .unwrap();
     let mut sec_data: Vec<u8> = Vec::new();
-    context.export(Some(key.fingerprint.clone()), ExportMode::SECRET, &mut sec_data).unwrap();
+    context
+        .export(
+            Some(key.fingerprint.clone()),
+            ExportMode::SECRET,
+            &mut sec_data,
+        )
+        .unwrap();
     println!("{}", String::from_utf8(sec_data).unwrap());
 }
-
 
 #[allow(dead_code)]
 pub fn key() -> () {
@@ -123,19 +137,29 @@ pub fn key() -> () {
 
     let pub_key = context
         .get_key(key.fingerprint.clone())
-        .map_err(|e| Error::GpgmeError(e)).unwrap();
+        .map_err(|e| Error::GpgmeError(e))
+        .unwrap();
 
     let mut data: Vec<u8> = Vec::new();
-    context.export_keys(&[pub_key], gpgme::ExportMode::MINIMAL, &mut data).expect("Could not export key");
+    context
+        .export_keys(&[pub_key], gpgme::ExportMode::MINIMAL, &mut data)
+        .expect("Could not export key");
 
     let y = &mut data.clone();
     let mut r = Cert::from_bytes(y);
 
-   // let x = r.unwrap().fingerprint();
-    let x = r.unwrap().keys().next().unwrap().mpis().clone().to_vec().unwrap();
+    // let x = r.unwrap().fingerprint();
+    let x = r
+        .unwrap()
+        .keys()
+        .next()
+        .unwrap()
+        .mpis()
+        .clone()
+        .to_vec()
+        .unwrap();
     println!("fingerprint {}", x.len());
     // println!("{}", String::from_utf8(data).unwrap());
-
 }
 
 /**
@@ -149,7 +173,7 @@ stack backtrace:
 
 #[allow(dead_code)]
 pub fn create_test_env_with_new_gpg_key(test_data_path: String) -> (PathBuf, Key) {
-    let doc_dir = create_test_env(test_data_path);
+    let doc_dir = create_test_env(&test_data_path);
     let mut context = gpgme::Context::from_protocol(gpgme::Protocol::OpenPgp)
         .expect("Could create pgpme context from open pgp protocol");
     context.set_armor(true);
@@ -157,11 +181,24 @@ pub fn create_test_env_with_new_gpg_key(test_data_path: String) -> (PathBuf, Key
     context.set_engine_home_dir(gpg_home.unwrap()).unwrap();
 
     let mut gpg = Gpg::new();
-    let key = gpg.create_key(
-        CreateUserArgs{ email: "alice@colomba.link", name: "Alice"}
-    );
+    let key = gpg.create_key(CreateUserArgs {
+        email: "alice@colomba.link",
+        name: "Alice",
+    });
     let key = Gpg::key_with_public_key(&mut gpg, &key.as_ref().expect("a key")).unwrap();
 
     (doc_dir, key)
 }
 
+#[allow(dead_code)]
+pub fn create_test_env_with_test_gpg_key(test_data_path: String) -> (PathBuf, Key) {
+    let key_dir = create_test_env(&test_data_path);
+    let options = CopyOptions::new();
+    fs_extra::dir::copy("test/key1/.key", &test_data_path, &options).unwrap();
+
+    let mut gpg = Gpg::new();
+    let key = gpg
+        .get_public_key("A84E5D451E9E75B4791556896F45F34A926FBB70")
+        .unwrap();
+    (key_dir, key)
+}

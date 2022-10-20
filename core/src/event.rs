@@ -7,8 +7,7 @@ use std::ptr::NonNull;
 
 use rand::RngCore;
 
-use yrs::{Transaction};
-
+use yrs::Transaction;
 
 #[repr(transparent)]
 pub(crate) struct EventHandler<T>(Box<Subscriptions<T>>);
@@ -97,12 +96,10 @@ impl UpdateEvent {
     }
 }
 
-
 #[cfg(test)]
 mod test {
-    use std::sync::Arc;
     use std::sync::atomic::{AtomicU32, Ordering};
-
+    use std::sync::Arc;
 
     use crate::event::EventHandler;
 
