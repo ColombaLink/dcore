@@ -2,7 +2,6 @@ use std::fs;
 use std::path::PathBuf;
 
 use gpgme::ExportMode;
-use openssl_sys::d2i_PKCS8_PRIV_KEY_INFO;
 use sequoia_openpgp::armor::{Kind, Reader, ReaderMode};
 use sequoia_openpgp::Cert;
 use sequoia_openpgp::parse::Parse;

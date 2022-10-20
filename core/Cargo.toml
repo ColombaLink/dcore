@@ -8,17 +8,8 @@ edition = "2021"
 [dependencies]
 git2 = "0.15"
 yrs = "0.12.0"
-openssl-sys = "0.9"
-openssl = "0.10"
 libp2p = "0.48.0"
-pgp = "0.8.0"
-sha2 = "0.10.6"
-pbp = "0.4.0"
-sha-1 = "0.10.0"
-
-
 futures-timer = "3.0.2"
-
 gpgme = "0.10.0"
 gpgme-sys = "0.10.0"
 thiserror = "1.0.37"
@@ -35,7 +26,6 @@ version = "0.12.0"
 version = "0.7.0"
 features = ["wasm-bindgen"]
 
-
 [dependencies.chrono]
 version = "^0.4"
 features = [
@@ -43,7 +33,6 @@ features = [
     "std",
 ]
 default-features = false
-
 
 [dependencies.futures]
 version = "0.3.1"
