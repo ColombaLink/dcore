@@ -2,7 +2,6 @@ use std::fs;
 use std::path::PathBuf;
 
 use gpgme::ExportMode;
-use sequoia_openpgp::armor::{Kind, Reader, ReaderMode};
 use sequoia_openpgp::Cert;
 use sequoia_openpgp::parse::Parse;
 use sequoia_openpgp::serialize::MarshalInto;

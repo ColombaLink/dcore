@@ -2,8 +2,7 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 
 use git2::{BranchType, Repository, RepositoryInitOptions};
-use yrs::{Map, PrelimMap, Transaction, Update};
-use yrs::types::Value;
+use yrs::{PrelimMap, Update};
 use yrs::updates::decoder::Decode;
 
 use crate::document_utils::DocumentUtils;

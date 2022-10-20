@@ -8,6 +8,7 @@ pub mod identity;
 mod resource;
 mod event;
 mod document_utils;
-mod test_utils;
 mod libp2p_sync;
 
+#[cfg(test)]
+mod test_utils;
