@@ -11,6 +11,7 @@ use crate::errors::Error;
 use crate::gpg::{Gpg, Key};
 use crate::resource::Resource;
 use crate::Identity;
+use crate::sync_git::GitSync;
 
 pub struct Document {
     pub name: String,
@@ -19,6 +20,7 @@ pub struct Document {
     pub gpg: Gpg,
     pub resources: HashMap<String, Resource>,
 }
+
 
 
 impl Document {
@@ -61,6 +63,17 @@ impl Document {
         let fingerprint = self.identity.get_fingerprint();
         let key = format!("{}.remote", fingerprint);
         self.update_resource_with_key_value("config", key.as_str(), remote).unwrap();
+        Ok(())
+    }
+
+    pub fn clone(self, p0: &String) -> Result<(), Error> {
+        self.repository.remote_set_url("origin", p0)?;
+        GitSync::sync( self)?;
+        Ok(())
+    }
+
+    pub fn sync(self) -> Result<(), Error> {
+        GitSync::sync( self)?;
         Ok(())
     }
 }
@@ -113,17 +126,6 @@ impl Document {
             ));
         }
         let mut resource = Resource::new(&String::from("config"));
-
-        let sub = resource.observe_local_transactions(|_t, _update| {
-            println!("Local transaction: ...");
-        });
-
-        self.identity.get_fingerprint();
-
-        resource.local_transaction_subscriptions.insert(sub.id, sub);
-
-        let update = resource.set_resource_meta(&"config".to_string()).unwrap();
-        let _ = &self.commit_update(&update, &resource);
 
         let update = resource
             .add_local_update(|mut transaction| {
@@ -423,7 +425,7 @@ mod tests {
             .unwrap();
 
         let r = doc.resources.get("config").unwrap();
-        let resource = r.store.transact().get_map("config").to_json();
+        let resource = r.store.transact().get_map("root").to_json();
 
         let expected = Any::from_json(
             r#"{
@@ -463,10 +465,10 @@ mod tests {
         doc_to_load.load().unwrap();
 
         let r = doc_to_load.resources.get("config").unwrap();
-        let resource = r.store.transact().get_map("config").to_json();
+        let resource = r.store.transact().get_map("root").to_json();
 
         let r = doc.resources.get("config").unwrap();
-        let expected = r.store.transact().get_map("config").to_json();
+        let expected = r.store.transact().get_map("root").to_json();
 
         assert_eq!(resource, expected);
     }
@@ -488,7 +490,7 @@ mod tests {
 
         let r = doc.resources.get_mut("config").unwrap();
         r.add_local_update(|mut transaction| {
-            let config_root = transaction.get_map("config");
+            let config_root = transaction.get_map("root");
 
             config_root.insert(
                 &mut transaction,
@@ -516,6 +518,24 @@ mod tests {
         )
         .unwrap();
         assert_eq!(resource, expected);
+
+        let doc_to_load = &mut Document::new(DocumentNewOptions {
+            directory: PathBuf::from(doc_dir),
+            identity_fingerprint: get_test_key().fingerprint,
+            name: String::from("test-doc1"),
+        })
+            .unwrap();
+
+        doc_to_load.load().unwrap();
+
+        let r = doc_to_load.resources.get("config").unwrap();
+        let resource = r.store.transact().get_map("root").to_json();
+
+        let r = doc.resources.get("config").unwrap();
+        let expected = r.store.transact().get_map("root").to_json();
+
+        assert_eq!(resource, expected);
+
     }
 
     #[test]

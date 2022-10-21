@@ -5,7 +5,7 @@ use libp2p::swarm::KeepAlive::No;
 use crate::{Document, Identity};
 use crate::errors::Error;
 
-struct GitSync;
+pub struct GitSync;
 
 impl GitSync {
     pub fn sync(doc: Document) -> Result<(), Error> {

@@ -18,7 +18,7 @@ impl DocumentUtils {
             Ok(device) => device,
             Err(_) => "device-0",
         };
-        let log_name = format!("{}/{}/{}", resource_name, user_fingerprint, device);
+        let log_name = format!("refs/local/{}/{}/{}", resource_name, user_fingerprint, device);
         let parents = match doc.repository.revparse_ext(log_name.as_str()) {
             Ok((_obj, reference)) => {
                 let oid = reference
@@ -86,8 +86,7 @@ impl DocumentUtils {
             )
             .unwrap();
 
-        let ref_name = format!("refs/local/{}", log_name);
-        repo.reference(&ref_name, new_signed_commit, true, "update ref")
+        repo.reference(&log_name, new_signed_commit, true, "update ref")
             .expect("Could not update the reference with the new commit.");
 
         Ok(())

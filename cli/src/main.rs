@@ -26,11 +26,15 @@ enum DcoreSubCommands {
     IdentityListAll(IdentityListAllArgs),
 
     DocumentCreate(DocumentCreateArgs),
+    DocumentClone(DocumentCloneArgs),
+    DocumentSync(DocumentSyncArgs),
 
     ResourceListAll(ResourceListAllArgs),
     ResourceCat(ResourceCatArgs),
     ResourceSet(ResourceSetArgs),
     ResourceAdd(ResourceAddArgs),
+
+    ConfigSetDeviceName(ConfigSetDeviceNameArgs),
 }
 
 fn main() {
@@ -40,11 +44,17 @@ fn main() {
         DcoreSubCommands::IdentityListAll(args) => identity_list_all(args),
 
         DcoreSubCommands::DocumentCreate(args) => document_create(args),
+        DcoreSubCommands::DocumentClone(args) => document_clone(args),
+        DcoreSubCommands::DocumentSync(args) => document_sync(args),
 
         DcoreSubCommands::ResourceListAll(args) => resource_list_all(args),
         DcoreSubCommands::ResourceCat(args) => resource_cat(args),
         DcoreSubCommands::ResourceSet(args) => resource_set(args),
         DcoreSubCommands::ResourceAdd(args) => resource_add(args),
+
+        DcoreSubCommands::ConfigSetDeviceName(args) => config_set_device_name(args),
+
+
     };
 }
 
@@ -325,9 +335,9 @@ fn resource_set(args: ResourceSetArgs) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-/// Set a key value property of a resource
+/// Add a new resource to a document
 ///
-/// dcore resource-set
+/// dcore resource-add
 #[derive(clap::Parser)]
 struct ResourceAddArgs {
     /// User identity fingerprint
@@ -342,6 +352,7 @@ struct ResourceAddArgs {
     #[clap(short, long)]
     resource_name: String,
 }
+
 fn resource_add(args: ResourceAddArgs) -> Result<(), Box<dyn Error>> {
     let directory = PathBuf::from(&args.document_path);
     let name = directory.file_name().unwrap().to_str().unwrap().to_string();
@@ -365,5 +376,132 @@ fn resource_add(args: ResourceAddArgs) -> Result<(), Box<dyn Error>> {
     doc.add_resource(args.resource_name)
         .expect("Failed to update resource");
 
+    Ok(())
+}
+
+/// Set the local device name
+///
+/// dcore device-set
+#[derive(clap::Parser)]
+struct ConfigSetDeviceNameArgs {
+    /// User identity fingerprint
+    #[clap(short, long)]
+    user_id_fingerprint: String,
+
+    /// Path to the document directory
+    #[clap(short, long)]
+    document_path: String,
+
+    /// Device name
+    #[clap(short, long)]
+    name: String,
+}
+
+fn config_set_device_name(args: ConfigSetDeviceNameArgs) -> Result<(), Box<dyn Error>> {
+    let directory = PathBuf::from(&args.document_path);
+    let name = directory.file_name().unwrap().to_str().unwrap().to_string();
+
+    let identity = Identity::get_identity(dcore::identity::GetIdentityArgs {
+        keyring_home_dir: None,
+        fingerprint: args.user_id_fingerprint,
+    })
+        .expect("Failed to get identity with the provided fingerprint");
+
+    let doc_init_option = DocumentNewOptions {
+        directory,
+        name,
+        identity_fingerprint: identity.fingerprint.clone(),
+    };
+
+    // todo: we need to be able to load the doc without the identity
+    //       for the case that a user just want to list them without... makes only sense for unencrypted docs...
+    let mut doc = Document::new(doc_init_option).expect("Failed to create document");
+    doc.load().expect("Failed to load document");
+    doc.config_set_local_device(&args.name)
+        .expect("Failed to update resource");
+    Ok(())
+}
+
+
+
+/// Clone a existing document
+///
+/// dcore clone
+#[derive(clap::Parser)]
+struct DocumentCloneArgs {
+    /// User identity fingerprint
+    #[clap(short, long)]
+    user_id_fingerprint: String,
+
+    /// Path to the document directory
+    #[clap(short, long)]
+    document_path: String,
+
+    /// Remote Document Url
+    #[clap(short, long)]
+    remote_url: String,
+}
+
+fn document_clone(args: DocumentCloneArgs) -> Result<(), Box<dyn Error>> {
+    let directory = PathBuf::from(&args.document_path);
+    let name = directory.file_name().unwrap().to_str().unwrap().to_string();
+
+    let identity = Identity::get_identity(dcore::identity::GetIdentityArgs {
+        keyring_home_dir: None,
+        fingerprint: args.user_id_fingerprint,
+    })
+        .expect("Failed to get identity with the provided fingerprint");
+
+    let doc_init_option = DocumentNewOptions {
+        directory,
+        name,
+        identity_fingerprint: identity.fingerprint.clone(),
+    };
+
+    // todo: we need to be able to load the doc without the identity
+    //       for the case that a user just want to list them without... makes only sense for unencrypted docs...
+    let mut doc = Document::new(doc_init_option).expect("Failed to create document");
+
+    doc.clone(&args.remote_url).expect("Failed to clone document");
+    Ok(())
+}
+
+/// Sync the document with the remote
+///
+/// dcore document-sync
+#[derive(clap::Parser)]
+struct DocumentSyncArgs {
+    /// User identity fingerprint
+    #[clap(short, long)]
+    user_id_fingerprint: String,
+
+    /// Path to the document directory
+    #[clap(short, long)]
+    document_path: String,
+
+}
+
+fn document_sync(args: DocumentSyncArgs) -> Result<(), Box<dyn Error>> {
+    let directory = PathBuf::from(&args.document_path);
+    let name = directory.file_name().unwrap().to_str().unwrap().to_string();
+
+    let identity = Identity::get_identity(dcore::identity::GetIdentityArgs {
+        keyring_home_dir: None,
+        fingerprint: args.user_id_fingerprint,
+    })
+        .expect("Failed to get identity with the provided fingerprint");
+
+    let doc_init_option = DocumentNewOptions {
+        directory,
+        name,
+        identity_fingerprint: identity.fingerprint.clone(),
+    };
+
+    // todo: we need to be able to load the doc without the identity
+    //       for the case that a user just want to list them without... makes only sense for unencrypted docs...
+    let mut doc = Document::new(doc_init_option).expect("Failed to create document");
+
+    doc.load().expect("Failed to load document");
+    doc.sync().expect("Failed to sync document");
     Ok(())
 }
