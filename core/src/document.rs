@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 
 use git2::{BranchType, Repository, RepositoryInitOptions};
@@ -20,7 +20,7 @@ pub struct Document {
 }
 
 impl Document {
-    pub(crate) fn add_resource(&self, p0: String) -> Result<(), Error> {
+    pub(crate) fn add_resource(&mut self, p0: String) -> Result<(), Error> {
         if self.resources.contains_key(&p0) {
             return Err(Error::Other(
                 "Document already initialized because the config resource exists".to_string(),
@@ -30,48 +30,13 @@ impl Document {
         let update = resource.set_resource_meta(&p0).unwrap();
 
         let _ = &self.commit_update(&update, &resource);
+        self.resources.insert(p0, resource);
 
-        let update = resource
-            .add_local_update(|mut transaction| {
-                transaction.get_map("root");
-                transaction
-            })
-            .unwrap();
-
-        let _ = &self.commit_update(&update, &resource);
         Ok(())
     }
 }
 
-mod test {
-    use crate::document::DocumentNewOptions;
-    use crate::test_utils::{create_test_env_with_test_gpg_key, get_test_key};
-    use crate::Document;
-    use std::fs;
-    use std::path::PathBuf;
 
-    #[test]
-    fn add_resource() {
-        let doc_dir = "./.test/doc/add_resource/";
-        create_test_env_with_test_gpg_key(doc_dir.to_string());
-        let doc = Document::new(DocumentNewOptions {
-            directory: PathBuf::from(doc_dir),
-            identity_fingerprint: "A84E5D451E9E75B4791556896F45F34A926FBB70".to_string(),
-            name: String::from("name"),
-        })
-        .unwrap();
-
-        let mut doc = doc
-            .init(&get_test_key().fingerprint, &get_test_key().public_key)
-            .unwrap();
-
-        doc.resources.get_mut("config").unwrap();
-        doc.add_resource("test".to_string()).unwrap();
-
-        let result =  fs::read("./.test/doc/add_resource/.data/refs/heads/test/A84E5D451E9E75B4791556896F45F34A926FBB70").unwrap();
-        assert_eq!(result.len(), 41);
-    }
-}
 
 unsafe impl Send for Document {}
 
@@ -133,7 +98,7 @@ impl Document {
 
         let update = resource
             .add_local_update(|mut transaction| {
-                let config_root = transaction.get_map("config");
+                let config_root = transaction.get_map("root");
 
                 let public_key = public_key.clone();
                 let fingerprint = fingerprint.clone();
@@ -187,55 +152,77 @@ impl Document {
     }
 
     pub fn load(&mut self) -> Result<(), Error> {
-        let config_logs_head_oids = self
+
+        // load all resources from the repository
+        // all the folders in the refs folder are resources
+
+        let mut resources = HashSet::new();
+        self
             .repository
             .branches(Some(BranchType::Local))
             .map_err(|e| Error::GitError(e))
             .unwrap()
-            .filter(|branch| {
-                let log = &branch.as_ref().unwrap().0;
-                let log_name = log.name().unwrap().unwrap().clone();
-                log_name.starts_with("config/")
-            })
-            .map(|log| {
+            .for_each(|log| {
                 let log = &log.as_ref().unwrap().0;
-                let oid = log.get().target().unwrap().to_owned();
-                oid
+                let log_name = log.name().unwrap().unwrap().clone();
+                let resource_name = log_name.split("/").collect::<Vec<&str>>()[0].to_string();
+                resources.insert(resource_name);
             });
 
-        let resource = Resource::new(&String::from("config"));
-        let revwalk = &mut self
-            .repository
-            .revwalk()
-            .map_err(|e| Error::GitError(e))
-            .unwrap();
-        revwalk
-            .set_sorting(git2::Sort::REVERSE)
-            .map_err(|e| Error::GitError(e))
-            .unwrap();
-        let mut t = resource.store.transact();
-        for oid in config_logs_head_oids {
-            revwalk.push(oid).map_err(|e| Error::GitError(e)).unwrap();
-            println!("log: {}", oid.to_string());
-            let updates = revwalk
-                .flat_map(|id| self.repository.find_commit(id.unwrap()))
-                .map(|commit| commit.tree().unwrap())
-                .map(|tree| {
-                    tree.get_name("update")
-                        .unwrap()
-                        .to_object(&self.repository)
-                        .unwrap()
+
+        for resource_name in resources {
+            println!("Loading resource: {}", resource_name);
+            let resource_logs_head_oids = self
+                .repository
+                .branches(Some(BranchType::Local))
+                .map_err(|e| Error::GitError(e))
+                .unwrap()
+                .filter(|branch| {
+                    let log = &branch.as_ref().unwrap().0;
+                    let log_name = log.name().unwrap().unwrap().clone();
+                    log_name.starts_with(&format!("{}/", resource_name))
                 })
-                .map(|object| object.peel_to_blob().unwrap())
-                .map(|blob| blob.content().to_vec())
-                .map(|content| Update::decode_v2(content.as_slice()).unwrap());
+                .map(|log| {
+                    let log = &log.as_ref().unwrap().0;
+                    let oid = log.get().target().unwrap().to_owned();
+                    oid
+                });
 
-            let update = Update::merge_updates(updates);
-            t.apply_update(update);
+            let mut resource = Resource::new(&resource_name);
+            let revwalk = &mut self
+                .repository
+                .revwalk()
+                .map_err(|e| Error::GitError(e))
+                .unwrap();
+            revwalk
+                .set_sorting(git2::Sort::REVERSE)
+                .map_err(|e| Error::GitError(e))
+                .unwrap();
+            let mut t = resource.store.transact();
+            for oid in resource_logs_head_oids {
+                revwalk.push(oid).map_err(|e| Error::GitError(e)).unwrap();
+                println!("log: {}", oid.to_string());
+                let updates = revwalk
+                    .flat_map(|id| self.repository.find_commit(id.unwrap()))
+                    .map(|commit| commit.tree().unwrap())
+                    .map(|tree| {
+                        tree.get_name("update")
+                            .unwrap()
+                            .to_object(&self.repository)
+                            .unwrap()
+                    })
+                    .map(|object| object.peel_to_blob().unwrap())
+                    .map(|blob| blob.content().to_vec())
+                    .map(|content| Update::decode_v2(content.as_slice()).unwrap());
+
+                let update = Update::merge_updates(updates);
+                t.apply_update(update);
+            }
+
+            t.commit();
+            self.resources.insert(resource_name, resource);
+
         }
-
-        t.commit();
-        self.resources.insert("config".to_string(), resource);
 
         Ok(())
     }
@@ -302,7 +289,7 @@ impl Document {
             .add_local_update(|mut transaction| {
                 let mut key_parts = key.split(".");
                 let root_key = key_parts.next().unwrap();
-                let root_map = transaction.get_map(resource_name);
+                let root_map = transaction.get_map("root");
                 let mut current_map = root_map.clone();
 
                 while let Some(key) = key_parts.next() {
@@ -336,6 +323,8 @@ impl Document {
     }
 }
 
+
+
 #[cfg(test)]
 mod tests {
 
@@ -354,6 +343,7 @@ mod tests {
         create_test_env, create_test_env_with_new_gpg_key, create_test_env_with_sample_gpg_key,
         create_test_env_with_test_gpg_key, get_test_key,
     };
+
 
     #[test]
     fn new_doc() {
@@ -481,6 +471,28 @@ mod tests {
     }
 
     #[test]
+    fn add_resource() {
+        let doc_dir = "./.test/doc/add_resource/";
+        create_test_env_with_test_gpg_key(doc_dir.to_string());
+        let doc = Document::new(DocumentNewOptions {
+            directory: PathBuf::from(doc_dir),
+            identity_fingerprint: "A84E5D451E9E75B4791556896F45F34A926FBB70".to_string(),
+            name: String::from("name"),
+        })
+            .unwrap();
+
+        let mut doc = doc
+            .init(&get_test_key().fingerprint, &get_test_key().public_key)
+            .unwrap();
+
+        doc.resources.get_mut("config").unwrap();
+        doc.add_resource("test".to_string()).unwrap();
+
+        let result =  fs::read("./.test/doc/add_resource/.data/refs/heads/test/A84E5D451E9E75B4791556896F45F34A926FBB70").unwrap();
+        assert_eq!(result.len(), 41);
+    }
+
+    #[test]
     fn update_resource_by_key_value() {
         let doc_dir = "./.test/doc/update_resource_by_key_value/";
         let (path, key) = create_test_env_with_new_gpg_key(doc_dir.to_string());
@@ -501,4 +513,66 @@ mod tests {
             .unwrap();
         //  doc.update_resource_with_key_value("config", "39069565EA65A07AE1FBB4BB9B484B5D677BC2EA.x.y", "up").unwrap();
     }
+
+    #[test]
+    fn update_test_resource_with_key_value() {
+        let doc_dir = "./.test/doc/update_test_resource_with_key_value/";
+        create_test_env_with_test_gpg_key(doc_dir.to_string());
+        let doc = Document::new(DocumentNewOptions {
+            directory: PathBuf::from(doc_dir),
+            identity_fingerprint: "A84E5D451E9E75B4791556896F45F34A926FBB70".to_string(),
+            name: String::from("name"),
+        })
+            .unwrap();
+
+        let mut doc = doc
+            .init(&get_test_key().fingerprint, &get_test_key().public_key)
+            .unwrap();
+
+        doc.add_resource("test".to_string()).unwrap();
+
+        let result =  fs::read("./.test/doc/add_resource/.data/refs/heads/test/A84E5D451E9E75B4791556896F45F34A926FBB70").unwrap();
+        assert_eq!(result.len(), 41);
+
+        doc.update_resource_with_key_value("test", "entry", "1234").unwrap();
+
+        let result = doc.resources.get("test").unwrap().get_content();
+        assert_eq!(result, "..");
+    }
+
+    #[test]
+    fn reload_update_test_resource_with_key_value() {
+        let doc_dir = "./.test/doc/reload_update_test_resource_with_key_value/";
+        create_test_env_with_test_gpg_key(doc_dir.to_string());
+        let doc = Document::new(DocumentNewOptions {
+            directory: PathBuf::from(doc_dir),
+            identity_fingerprint: "A84E5D451E9E75B4791556896F45F34A926FBB70".to_string(),
+            name: String::from("name"),
+        })
+            .unwrap();
+
+        let mut doc = doc
+            .init(&get_test_key().fingerprint, &get_test_key().public_key)
+            .unwrap();
+
+        doc.add_resource("test".to_string()).unwrap();
+
+        let result =  fs::read("./.test/doc/add_resource/.data/refs/heads/test/A84E5D451E9E75B4791556896F45F34A926FBB70").unwrap();
+        assert_eq!(result.len(), 41);
+
+        doc.update_resource_with_key_value("test", "fp.test", "1234").unwrap();
+
+        let mut doc = Document::new(DocumentNewOptions {
+            directory: PathBuf::from(doc_dir),
+            identity_fingerprint: "A84E5D451E9E75B4791556896F45F34A926FBB70".to_string(),
+            name: String::from("name"),
+        })
+            .unwrap();
+
+        doc.load().unwrap();
+
+        let result = doc.resources.get("test").unwrap().get_content();
+        assert_eq!(result, "...");
+    }
+
 }
