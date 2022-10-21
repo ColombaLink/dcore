@@ -295,12 +295,13 @@ impl Document {
                     if key_parts.clone().peekable().peek().is_some() {
                         // there will be a next key
                         // check if the current key already exists
-                        match current_map.get(key).unwrap().to_ymap() {
-                            Some(map) => current_map = map.clone(),
+                        println!("key: {}", key);
+                        match current_map.get(key) {
+                            Some(map) => current_map = map.to_ymap().unwrap().clone(),
                             None => {
                                 // this does not work correctly at the moment: it overwrites the the value...
                                 // todo: fix nested key
-                                let next_map: HashMap<String, String> = HashMap::new();
+                                let next_map = PrelimMap::<i32>::from(HashMap::default());
                                 current_map.insert(&mut transaction, key.to_owned(), next_map);
                                 current_map =
                                     current_map.get(key).unwrap().to_ymap().unwrap().clone();
@@ -559,7 +560,8 @@ mod tests {
         let result =  fs::read("./.test/doc/add_resource/.data/refs/heads/test/A84E5D451E9E75B4791556896F45F34A926FBB70").unwrap();
         assert_eq!(result.len(), 41);
 
-        doc.update_resource_with_key_value("test", "fp.test", "1234").unwrap();
+        doc.update_resource_with_key_value("test", "test", "1234").unwrap();
+        doc.update_resource_with_key_value("test", "nested.test", "1234").unwrap();
 
         let mut doc = Document::new(DocumentNewOptions {
             directory: PathBuf::from(doc_dir),
@@ -570,8 +572,17 @@ mod tests {
 
         doc.load().unwrap();
 
-        let result = doc.resources.get("test").unwrap().get_content();
-        assert_eq!(result, "...");
+        //let result = doc.resources.get("test").unwrap().get_content();
+        //assert_eq!(result, "{test: 1234}");
+
+        let r = doc.resources.get("test").unwrap();
+        let resource = r.store.transact().get_map("root").to_json();
+
+        let expected = Any::from_json(
+            r#"{"test": "1234", "nested": {"test": "1234"}}"#
+        ).unwrap();
+        assert_eq!(resource, expected);
+
     }
 
 }
