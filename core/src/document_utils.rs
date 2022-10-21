@@ -86,7 +86,7 @@ impl DocumentUtils {
             )
             .unwrap();
 
-        let ref_name = format!("refs/heads/{}", log_name);
+        let ref_name = format!("refs/local/{}", log_name);
         repo.reference(&ref_name, new_signed_commit, true, "update ref")
             .expect("Could not update the reference with the new commit.");
 

@@ -1,3 +1,4 @@
+use std::borrow::Borrow;
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 
@@ -187,34 +188,33 @@ impl Document {
         let mut resources = HashSet::new();
         self
             .repository
-            .branches(Some(BranchType::Local))
+            .references()
             .map_err(|e| Error::GitError(e))
             .unwrap()
             .for_each(|log| {
-                let log = &log.as_ref().unwrap().0;
-                let log_name = log.name().unwrap().unwrap().clone();
-                let resource_name = log_name.split("/").collect::<Vec<&str>>()[0].to_string();
+                let log_name = log.unwrap().name().unwrap().clone().to_string();
+                // refs/local/{name}
+                let resource_name = log_name.split("/").collect::<Vec<&str>>()[2].to_string();
                 resources.insert(resource_name);
             });
 
 
         for resource_name in resources {
             println!("Loading resource: {}", resource_name);
-            let resource_logs_head_oids = self
-                .repository
-                .branches(Some(BranchType::Local))
-                .map_err(|e| Error::GitError(e))
-                .unwrap()
-                .filter(|branch| {
-                    let log = &branch.as_ref().unwrap().0;
-                    let log_name = log.name().unwrap().unwrap().clone();
-                    log_name.starts_with(&format!("{}/", resource_name))
-                })
-                .map(|log| {
-                    let log = &log.as_ref().unwrap().0;
-                    let oid = log.get().target().unwrap().to_owned();
-                    oid
-                });
+
+
+
+            let mut resource_logs_head_oids = Vec::new();
+
+            for log in self.repository.references().unwrap() {
+                let log = log.unwrap();
+                let log_name = log.name().unwrap();
+                // refs/local/{name}
+                let this_resource_name = log_name.split("/").collect::<Vec<&str>>()[2].to_string();
+                if(this_resource_name == resource_name) {
+                    resource_logs_head_oids.push(log.target().unwrap());
+                }
+            }
 
             let mut resource = Resource::new(&resource_name);
             let revwalk = &mut self
@@ -536,7 +536,7 @@ mod tests {
         doc.resources.get_mut("config").unwrap();
         doc.add_resource("test".to_string()).unwrap();
 
-        let result =  fs::read("./.test/doc/add_resource/.data/refs/heads/test/A84E5D451E9E75B4791556896F45F34A926FBB70").unwrap();
+        let result =  fs::read("./.test/doc/add_resource/.data/refs/local/test/A84E5D451E9E75B4791556896F45F34A926FBB70/device-0").unwrap();
         assert_eq!(result.len(), 41);
     }
 
@@ -579,7 +579,7 @@ mod tests {
 
         doc.add_resource("test".to_string()).unwrap();
 
-        let result =  fs::read("./.test/doc/update_test_resource_with_key_value/.data/refs/heads/test/A84E5D451E9E75B4791556896F45F34A926FBB70/device-0").unwrap();
+        let result =  fs::read("./.test/doc/update_test_resource_with_key_value/.data/refs/local/test/A84E5D451E9E75B4791556896F45F34A926FBB70/device-0").unwrap();
         assert_eq!(result.len(), 41);
 
         doc.update_resource_with_key_value("test", "entry", "1234").unwrap();
@@ -605,7 +605,7 @@ mod tests {
 
         doc.add_resource("test".to_string()).unwrap();
 
-        let result =  fs::read("./.test/doc/reload_update_test_resource_with_key_value/.data/refs/heads/test/A84E5D451E9E75B4791556896F45F34A926FBB70/device-0").unwrap();
+        let result =  fs::read("./.test/doc/reload_update_test_resource_with_key_value/.data/refs/local/test/A84E5D451E9E75B4791556896F45F34A926FBB70/device-0").unwrap();
         assert_eq!(result.len(), 41);
 
         doc.update_resource_with_key_value("test", "test", "1234").unwrap();
@@ -624,13 +624,8 @@ mod tests {
         //assert_eq!(result, "{test: 1234}");
 
         let r = doc.resources.get("test").unwrap();
-        let resource = r.store.transact().get_map("root").to_json();
-
-        let expected = Any::from_json(
-            r#"{"test": "1234", "nested": {"test": "1234"}}"#
-        ).unwrap();
-        assert_eq!(resource, expected);
-
+        let b = r.get_content();
+        assert_eq!(b, "{test: 1234, nested: {test: 1234}}");
     }
 
 
@@ -654,7 +649,7 @@ mod tests {
 
         doc.add_resource("test".to_string()).unwrap();
 
-        let result =  fs::read("./.test/doc/config_set_device_name/.data/refs/heads/test/A84E5D451E9E75B4791556896F45F34A926FBB70/dev0").unwrap();
+        let result =  fs::read("./.test/doc/config_set_device_name/.data/refs/local/test/A84E5D451E9E75B4791556896F45F34A926FBB70/dev0").unwrap();
         assert_eq!(result.len(), 41);
 
     }
