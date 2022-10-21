@@ -242,9 +242,7 @@ mod tests {
 
     use crate::errors::Error;
     use crate::gpg::{CreateUserArgs, Gpg};
-    use crate::test_utils::{
-        create_armored_key, create_test_env, create_test_env_with_sample_gpg_key, key,
-    };
+    use crate::test_utils::{create_armored_key, create_test_env, create_test_env_with_sample_gpg_key, key, rsa_key};
     use crate::Identity;
 
     #[test]
@@ -424,6 +422,7 @@ mod tests {
 
     #[test]
     fn test_go() {
-        key()
+        //key()
+        rsa_key()
     }
 }
