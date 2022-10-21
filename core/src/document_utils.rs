@@ -13,7 +13,12 @@ impl DocumentUtils {
         let repo = &doc.repository;
         let resource_name = &_resource.name;
         let user_fingerprint = &doc.identity.get_fingerprint();
-        let log_name = format!("{}/{}", resource_name, user_fingerprint);
+        let config = doc.repository.config().unwrap();
+        let device = match config.get_str("user.device") {
+            Ok(device) => device,
+            Err(_) => "device-0",
+        };
+        let log_name = format!("{}/{}/{}", resource_name, user_fingerprint, device);
         let parents = match doc.repository.revparse_ext(log_name.as_str()) {
             Ok((_obj, reference)) => {
                 let oid = reference
