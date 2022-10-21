@@ -34,6 +34,17 @@ impl Document {
 
         Ok(())
     }
+
+    pub fn config_set_local_device(&self, device_name: &str) -> Result<(), Error> {
+        // check that only allowed characters are used in device name (a-z, A-Z, 0-9, -)
+        if !device_name.chars().all(|c| c.is_ascii_alphanumeric() || c == '-') {
+            return Err(Error::Other(
+                "Device name can only contain a-z, A-Z, 0-9, -".to_string(),
+            ));
+        }
+        self.repository.config()?.set_str("user.device", device_name)?;
+        Ok(())
+    }
 }
 
 
@@ -582,6 +593,33 @@ mod tests {
             r#"{"test": "1234", "nested": {"test": "1234"}}"#
         ).unwrap();
         assert_eq!(resource, expected);
+
+    }
+
+
+    #[test]
+    fn config_set_device_name() {
+        let doc_dir = "./.test/doc/config_set_device_name/";
+        create_test_env_with_test_gpg_key(doc_dir.to_string());
+        let doc = Document::new(DocumentNewOptions {
+            directory: PathBuf::from(doc_dir),
+            identity_fingerprint: "A84E5D451E9E75B4791556896F45F34A926FBB70".to_string(),
+            name: String::from("name"),
+        })
+            .unwrap();
+
+
+        doc.config_set_local_device("dev0").unwrap();
+
+        let mut doc = doc
+            .init(&get_test_key().fingerprint, &get_test_key().public_key)
+            .unwrap();
+
+
+        doc.add_resource("test".to_string()).unwrap();
+
+        let result =  fs::read("./.test/doc/config_set_device_name/.data/refs/heads/test/A84E5D451E9E75B4791556896F45F34A926FBB70/dev0").unwrap();
+        assert_eq!(result.len(), 41);
 
     }
 

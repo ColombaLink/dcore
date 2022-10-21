@@ -13,7 +13,7 @@ impl DocumentUtils {
         let repo = &doc.repository;
         let resource_name = &_resource.name;
         let user_fingerprint = &doc.identity.get_fingerprint();
-        let config = doc.repository.config().unwrap();
+        let config = doc.repository.config().unwrap().snapshot().unwrap();
         let device = match config.get_str("user.device") {
             Ok(device) => device,
             Err(_) => "device-0",
