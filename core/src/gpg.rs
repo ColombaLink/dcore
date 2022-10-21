@@ -4,7 +4,7 @@ use std::fmt::Write;
 use std::str::from_utf8;
 use std::time::Duration;
 
-use gpgme::CreateKeyFlags;
+use gpgme::{CreateKeyFlags, ExportMode};
 
 use crate::errors::Error;
 
@@ -12,6 +12,46 @@ use crate::Identity;
 
 pub struct Gpg {
     context: gpgme::Context,
+}
+
+impl Gpg {
+
+    // todo: we need the key in the armored ssh format
+    pub(crate) fn get_armored_public_key(fingerprint: &str) -> Result<String, Error> {
+        let mut context = gpgme::Context::from_protocol(gpgme::Protocol::OpenPgp)
+            .expect("Could create pgpme context from open pgp protocol");
+        context.set_armor(true);
+        let key = context
+            .get_key(fingerprint)
+            .unwrap();
+        let mut data: Vec<u8> = Vec::new();
+        context
+            .export_keys(&[key], gpgme::ExportMode::empty(), &mut data)
+            .expect("Could not export key");
+        Ok(String::from_utf8(data).unwrap())
+    }
+
+    // todo: maybe pass the reference to the str instead of returning a String (=avoid heap)?
+    pub(crate) fn get_armored_private_key(fingerprint: &str) -> Result<String, Error> {
+        let mut context = gpgme::Context::from_protocol(gpgme::Protocol::OpenPgp)
+            .expect("Could create pgpme context from open pgp protocol");
+        context.set_armor(true);
+        let key = context
+            .get_key(fingerprint)
+            .unwrap();
+        context
+            .set_key_list_mode(gpgme::KeyListMode::WITH_SECRET)
+            .unwrap();
+        let mut data: Vec<u8> = Vec::new();
+        context
+            .export(
+                Some(fingerprint),
+                ExportMode::SECRET,
+                &mut data,
+            )
+            .unwrap();
+        Ok(String::from_utf8(data).unwrap())
+    }
 }
 
 impl Gpg {

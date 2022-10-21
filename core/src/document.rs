@@ -47,6 +47,15 @@ impl Document {
         Ok(())
     }
 
+    pub fn config_get_local_device(&self) -> Result<String, Error> {
+        let config =  self.repository.config().unwrap().snapshot().unwrap();
+
+        match config.get_str("user.device") {
+            Ok(device) => Ok(device.to_string()),
+            Err(_) => Ok("device-0".to_string()),
+        }
+    }
+
     pub fn config_set_remote(&mut self, remote: &str) -> Result<(), Error> {
         let fingerprint = self.identity.get_fingerprint();
         let key = format!("{}.remote", fingerprint);

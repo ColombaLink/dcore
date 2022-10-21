@@ -81,6 +81,16 @@ impl Identity {
         let key = gpg.get_public_key(&args.fingerprint);
         key
     }
+
+
+    pub fn get_armored_public_key(&self, ) -> Result<String, Error> {
+        gpg::Gpg::get_armored_public_key(&self.key.fingerprint)
+    }
+
+    pub fn get_armored_private_key(&self) -> Result<String, Error> {
+        gpg::Gpg::get_armored_private_key(&self.key.fingerprint)
+    }
+
 }
 
 #[cfg(test)]
