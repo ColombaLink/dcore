@@ -18,4 +18,7 @@ pub enum Error {
 
     #[error("`{0}`")]
     GitError(#[from] git2::Error),
+
+    #[error("`{0}`")]
+    DcoreError(String),
 }

@@ -20,27 +20,28 @@ pub struct TestKey {
 #[allow(dead_code)]
 pub fn get_test_key() -> TestKey {
     TestKey {
-        fingerprint: "39069565EA65A07AE1FBB4BB9B484B5D677BC2EA".to_string(),
+        fingerprint: "A84E5D451E9E75B4791556896F45F34A926FBB70".to_string(),
         public_key: r#"-----BEGIN PGP PUBLIC KEY BLOCK-----
 
-mDMEYzxVCxYJKwYBBAHaRw8BAQdAIBFXz9lWTbRUZk8QdbtZIDzT8EksDBLUrD5I
-o4wKjQi0GkFsaWNlIDxhbGljZUBjb2xvbWJhLmxpbms+iJAEExYIADgWIQQ5BpVl
-6mWgeuH7tLubSEtdZ3vC6gUCYzxVCwIbAwULCQgHAgYVCgkICwIEFgIDAQIeAQIX
-gAAKCRCbSEtdZ3vC6hwcAP9sPv78aC+t4MCasarWYv9FMtJ3aZMgpZchCCJD0b49
-owEA9DSYX43Sf2btvmjjTRvmjSDdG/CzZ11/FZwCbRlJXws=
-=JSAK
+mDMEY1FU4BYJKwYBBAHaRw8BAQdAKSqrB/NgijxUNMK0HHdrBGKBc812PFgBMm50
+nIPKIA60GUFsaWNlIDxpbmZvQGNvbG9tYmEubGluaz6IkAQTFggAOBYhBKhOXUUe
+nnW0eRVWiW9F80qSb7twBQJjUVTgAhsDBQsJCAcCBhUKCQgLAgQWAgMBAh4BAheA
+AAoJEG9F80qSb7twJNQBAJ0WiFnWCG+1Cbk1etUnEreg49KzEnmIYebcZyV6yEXj
+AP9TdoNQJnwIMQFYaSohawMwecp/A+F51Y0Pn90pX0vtDw==
+=GYnp
 -----END PGP PUBLIC KEY BLOCK-----"#
             .to_string(),
         secret_key: r#"-----BEGIN PGP PRIVATE KEY BLOCK-----
 
-lFgEYzxc1RYJKwYBBAHaRw8BAQdAHSpKLDT9Gjjl/Nl5VQGkhiq5MegUoBJpAQ5H
-eQkevsQAAP4txwTfBeHqYsEvqCwAjTOVbCcH/fLG96FqJjby4YmA9RGetBpBbGlj
-ZSA8YWxpY2VAY29sb21iYS5saW5rPoiQBBMWCAA4FiEEKx393uQpGJAg709HB6fY
-x3X9CtQFAmM8XNUCGwMFCwkIBwIGFQoJCAsCBBYCAwECHgECF4AACgkQB6fYx3X9
-CtThegD/b+aKV7KIZI6N3vLEoQay/sAgni0MJZkUR1ru4YiPK60A/3t1kGm+TIod
-DdkLCFgUsP7kji+TiqIIcs0eg+UliL4P
-=+mUj
------END PGP PRIVATE KEY BLOCK-----"#
+lFgEY1FU4BYJKwYBBAHaRw8BAQdAKSqrB/NgijxUNMK0HHdrBGKBc812PFgBMm50
+nIPKIA4AAP9HB/Vo+ozhO0ehgZS8KzKmJx8cLxkebp41XFn0iQPJaQ54tBlBbGlj
+ZSA8aW5mb0Bjb2xvbWJhLmxpbms+iJAEExYIADgWIQSoTl1FHp51tHkVVolvRfNK
+km+7cAUCY1FU4AIbAwULCQgHAgYVCgkICwIEFgIDAQIeAQIXgAAKCRBvRfNKkm+7
+cCTUAQCdFohZ1ghvtQm5NXrVJxK3oOPSsxJ5iGHm3GcleshF4wD/U3aDUCZ8CDEB
+WGkqIWsDMHnKfwPhedWND5/dKV9L7Q8=
+=Q3aJ
+-----END PGP PRIVATE KEY BLOCK-----
+"#
             .to_string(),
     }
 }
@@ -196,9 +197,38 @@ pub fn create_test_env_with_test_gpg_key(test_data_path: String) -> (PathBuf, Ke
     let options = CopyOptions::new();
     fs_extra::dir::copy("test/key1/.key", &test_data_path, &options).unwrap();
 
+
     let mut gpg = Gpg::new();
     let key = gpg
         .get_public_key("A84E5D451E9E75B4791556896F45F34A926FBB70")
         .unwrap();
+
+    if(false){
+        // todo: move this somewhere else...
+
+        let mut context = gpgme::Context::from_protocol(gpgme::Protocol::OpenPgp)
+            .expect("Could create pgpme context from open pgp protocol");
+        context.set_armor(true);
+        let mut data: Vec<u8> = Vec::new();
+       context
+            .export_keys(&[key.public.clone().unwrap()], gpgme::ExportMode::empty(), &mut data)
+            .expect("Could not export key");
+        println!("{}", String::from_utf8(data).unwrap());
+
+       context
+            .set_key_list_mode(gpgme::KeyListMode::WITH_SECRET)
+            .unwrap();
+        let mut sec_data: Vec<u8> = Vec::new();
+       context
+            .export(
+                Some(key.fingerprint.clone()),
+                ExportMode::SECRET,
+                &mut sec_data,
+            )
+            .unwrap();
+        println!("{}", String::from_utf8(sec_data).unwrap());
+    }
+
+
     (key_dir, key)
 }

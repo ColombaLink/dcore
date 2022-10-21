@@ -7,8 +7,9 @@ mod errors;
 mod event;
 mod gpg;
 pub mod identity;
-mod libp2p_sync;
+mod sync_libp2p;
 mod resource;
 
 #[cfg(test)]
 mod test_utils;
+mod sync_git;

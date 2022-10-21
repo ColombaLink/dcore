@@ -3,7 +3,7 @@ use std::path::PathBuf;
 
 use git2::{BranchType, Repository, RepositoryInitOptions};
 use yrs::updates::decoder::Decode;
-use yrs::{PrelimMap, Update};
+use yrs::{Map, PrelimMap, Update};
 
 use crate::document_utils::DocumentUtils;
 use crate::errors::Error;
@@ -18,6 +18,7 @@ pub struct Document {
     pub gpg: Gpg,
     pub resources: HashMap<String, Resource>,
 }
+
 
 impl Document {
     pub(crate) fn add_resource(&mut self, p0: String) -> Result<(), Error> {
@@ -43,6 +44,13 @@ impl Document {
             ));
         }
         self.repository.config()?.set_str("user.device", device_name)?;
+        Ok(())
+    }
+
+    pub fn config_set_remote(&mut self, remote: &str) -> Result<(), Error> {
+        let fingerprint = self.identity.get_fingerprint();
+        let key = format!("{}.remote", fingerprint);
+        self.update_resource_with_key_value("config", key.as_str(), remote).unwrap();
         Ok(())
     }
 }
@@ -332,6 +340,26 @@ impl Document {
         self.commit_update(&update, &resource1);
         Ok(())
     }
+
+    pub(crate) fn get_config(&self) -> Result<Map, Error>{
+        let resource = self.resources.get("config").unwrap();
+        Ok(resource.store.transact().get_map("root"))
+    }
+
+    pub(crate) fn config_get_remote(&self) -> Result<String, Error>{
+        let config = self.get_config().unwrap();
+        let fingerprint = self.identity.get_fingerprint();
+        let user_config = config.get(fingerprint.as_str()).unwrap().to_ymap().unwrap();
+        let remote = user_config.get("remote");
+        match remote {
+            Some(remote) => Ok(remote.to_string()),
+            None => {
+                let message = format!("Could not load remote.No remote configured for user {}", fingerprint);
+                Err(Error::DcoreError(message))
+            }
+        }
+    }
+
 }
 
 
@@ -605,8 +633,7 @@ mod tests {
             directory: PathBuf::from(doc_dir),
             identity_fingerprint: "A84E5D451E9E75B4791556896F45F34A926FBB70".to_string(),
             name: String::from("name"),
-        })
-            .unwrap();
+        }).unwrap();
 
 
         doc.config_set_local_device("dev0").unwrap();

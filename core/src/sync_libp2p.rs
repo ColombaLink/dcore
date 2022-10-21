@@ -1,7 +1,7 @@
 use futures::{channel::mpsc, prelude::*};
 use libp2p::{identity, mplex, noise, ping, tcp, yamux, Multiaddr, PeerId, Swarm};
 //use quickcheck::*;
-use crate::libp2p_sync::tcp::TcpTransport;
+use crate::sync_libp2p::tcp::TcpTransport;
 use libp2p::core::muxing::StreamMuxerBox;
 use libp2p::core::{transport, upgrade};
 use libp2p::swarm::{DummyBehaviour, KeepAlive, SwarmEvent};
