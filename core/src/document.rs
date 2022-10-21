@@ -66,9 +66,9 @@ impl Document {
         Ok(())
     }
 
-    pub fn clone(self, p0: &String) -> Result<(), Error> {
-        self.repository.remote_set_url("origin", p0)?;
-        GitSync::sync( self)?;
+    pub fn clone(self, remote: &String) -> Result<(), Error> {
+        self.repository.remote_set_url("origin", remote)?;
+        GitSync::clone(self, remote);
         Ok(())
     }
 
@@ -197,6 +197,10 @@ impl Document {
                 let log_name = log.unwrap().name().unwrap().clone().to_string();
                 // refs/local/{name}
                 let resource_name = log_name.split("/").collect::<Vec<&str>>()[2].to_string();
+
+                if resource_name == "main" || resource_name == "master" {
+                    return;
+                }
                 resources.insert(resource_name);
             });
 
@@ -213,7 +217,7 @@ impl Document {
                 let log_name = log.name().unwrap();
                 // refs/local/{name}
                 let this_resource_name = log_name.split("/").collect::<Vec<&str>>()[2].to_string();
-                if(this_resource_name == resource_name) {
+                if this_resource_name == resource_name {
                     resource_logs_head_oids.push(log.target().unwrap());
                 }
             }

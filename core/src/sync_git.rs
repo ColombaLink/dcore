@@ -1,11 +1,29 @@
 use std::borrow::Borrow;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use git2::{BranchType, Cred, PushOptions};
 use libp2p::swarm::KeepAlive::No;
 use crate::{Document, Identity};
 use crate::errors::Error;
 
 pub struct GitSync;
+
+impl GitSync {
+    pub(crate) fn clone(doc: Document, remote: &str) -> Result<(), Error> {
+        let mut pull_options = git2::FetchOptions::new();
+        let mut callbacks = git2::RemoteCallbacks::new();
+        callbacks.credentials(|_url, username_from_url, allowed_types| {
+            Self::get_credentials(&doc.identity)
+        });
+        pull_options.remote_callbacks(callbacks);
+
+
+        doc.repository.remote_set_url("origin", remote)?;
+        let mut remote = doc.repository.find_remote("origin").unwrap();
+
+        remote.fetch(&["+refs/heads/*:refs/origin/*"], Some(&mut pull_options), None).unwrap();
+        Ok(())
+    }
+}
 
 impl GitSync {
     pub fn sync(doc: Document) -> Result<(), Error> {
@@ -29,17 +47,22 @@ impl GitSync {
         let local_fingerprint = doc.identity.get_fingerprint();
         let identify_push_suffix = format!("{}/{}", local_fingerprint, local_device);
 
-        let logs_to_push = doc.repository
-            .branches(Some(BranchType::Local))
+        let mut refs_to_push = HashSet::new();
+            doc.repository
+            .references()
             .map_err(|e| Error::GitError(e))
             .unwrap()
-            .map(|log| log.unwrap().0 )
-            .filter(|log| log.name().unwrap().unwrap().ends_with(&identify_push_suffix));
+            .for_each(|log| {
+                let reference = log.unwrap().name().unwrap().clone().to_string();
+                // refs/local/
+                if reference.starts_with("refs/local/") {
+                    refs_to_push.insert(reference);
+                }
+            });
 
         let mut update_status = HashMap::new();
         let mut remote = doc.repository.find_remote("origin").unwrap();
-        for event_log in logs_to_push {
-            let event_log_name = event_log.name().unwrap().unwrap();
+        for reference in refs_to_push {
             let mut callbacks = git2::RemoteCallbacks::new();
             callbacks.credentials(|_url, username_from_url, allowed_types| {
                 Self::get_credentials(&doc.identity)
@@ -51,8 +74,9 @@ impl GitSync {
             });
             let mut push_options = PushOptions::new();;
             push_options.remote_callbacks(callbacks);
+            let remote_ref = reference.replace("local", "heads");
             remote.push(
-                &[format!("refs/heads/{}", &event_log_name).as_str()],
+                &[format!("{}:{}", reference, remote_ref)],
                 Some(&mut push_options)
             ).unwrap();
 
@@ -158,7 +182,15 @@ mod tests {
 
         GitSync::sync(doc).unwrap();
 
-
+        let doc = Document::new(DocumentNewOptions {
+            directory: PathBuf::from(doc_dir),
+            identity_fingerprint: "A84E5D451E9E75B4791556896F45F34A926FBB70".to_string(),
+            name: String::from("name"),
+        }).unwrap();
+        let mut doc = doc
+            .init(&get_test_key().fingerprint, &get_test_key().public_key)
+            .unwrap();
+        doc.load().unwrap();
     }
 
 }

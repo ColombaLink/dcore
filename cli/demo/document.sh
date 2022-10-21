@@ -39,6 +39,23 @@ GNUPGHOME=$GNUPGHOME  $dcore resource-cat -u $USER_FINGERPRINT -d $DOC_NAME -r c
 ### Add resource
 
 
+
+
+
+rm -rf $DOC_NAME
+GNUPGHOME=$GNUPGHOME $dcore document-create -u $USER_FINGERPRINT -d $DOC_NAME
+GNUPGHOME=$GNUPGHOME  $dcore resource-cat -u $USER_FINGERPRINT -d $DOC_NAME --resource-name config
+GNUPGHOME=$GNUPGHOME  $dcore resource-set -u $USER_FINGERPRINT \
+                                                      -d $DOC_NAME \
+                                                      -r config \
+                                                      -k ${USER_FINGERPRINT}.remote  \
+                                                      -v git@github.com:fuubi/gpgtest.git
+GNUPGHOME=$GNUPGHOME  $dcore resource-cat -u $USER_FINGERPRINT -d $DOC_NAME --resource-name config
+
+#sync
+GNUPGHOME=$GNUPGHOME  $dcore document-sync -u $USER_FINGERPRINT -d $DOC_NAME
+
+# new resource
 GNUPGHOME=$GNUPGHOME $dcore document-create -u $USER_FINGERPRINT -d $DOC_NAME
 GNUPGHOME=$GNUPGHOME  $dcore resource-add -u $USER_FINGERPRINT -d $DOC_NAME --resource-name test
 GNUPGHOME=$GNUPGHOME  $dcore resource-list-all -u $USER_FINGERPRINT -d $DOC_NAME
@@ -50,15 +67,3 @@ GNUPGHOME=$GNUPGHOME  $dcore resource-set -u $USER_FINGERPRINT \
                                                       -k hello  \
                                                       -v dcore
 GNUPGHOME=$GNUPGHOME  $dcore resource-cat -u $USER_FINGERPRINT -d $DOC_NAME --resource-name test
-
-
-
-rm -rf $DOC_NAME
-GNUPGHOME=$GNUPGHOME $dcore document-create -u $USER_FINGERPRINT -d $DOC_NAME
-GNUPGHOME=$GNUPGHOME  $dcore resource-cat -u $USER_FINGERPRINT -d $DOC_NAME --resource-name config
-GNUPGHOME=$GNUPGHOME  $dcore resource-set -u $USER_FINGERPRINT \
-                                                      -d $DOC_NAME \
-                                                      -r config \
-                                                      -k ${USER_FINGERPRINT}.remote  \
-                                                      -v https://github.com/alice
-GNUPGHOME=$GNUPGHOME  $dcore resource-cat -u $USER_FINGERPRINT -d $DOC_NAME --resource-name config
