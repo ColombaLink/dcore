@@ -22,7 +22,7 @@ pub struct Document {
 
 
 impl Document {
-    pub(crate) fn add_resource(&mut self, p0: String) -> Result<(), Error> {
+    pub fn add_resource(&mut self, p0: String) -> Result<(), Error> {
         if self.resources.contains_key(&p0) {
             return Err(Error::Other(
                 "Document already initialized because the config resource exists".to_string(),

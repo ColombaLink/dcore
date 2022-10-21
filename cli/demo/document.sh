@@ -1,7 +1,7 @@
 GNUPGHOME=./gpghome
 DOC_NAME=test-doc
-dcore=../target/debug/dcore
-USER_FINGERPRINT=33B458DABB890F7EFEDA810D5D0F734AA9374979
+dcore=../../target/debug/cli
+USER_FINGERPRINT=2490D2F1CE64B972780203DA3A287C4593CDC4D2
 
 clear
 rm -rf $DOC_NAME
@@ -34,3 +34,16 @@ GNUPGHOME=$GNUPGHOME  $dcore resource-set -u $USER_FINGERPRINT \
 echo "Cat the mutated resource"
 echo ""
 GNUPGHOME=$GNUPGHOME  $dcore resource-cat -u $USER_FINGERPRINT -d $DOC_NAME -r config
+
+
+### Add resource
+GNUPGHOME=$GNUPGHOME  $dcore resource-add -u $USER_FINGERPRINT -d $DOC_NAME --resource-name test
+GNUPGHOME=$GNUPGHOME  $dcore resource-list-all -u $USER_FINGERPRINT -d $DOC_NAME
+GNUPGHOME=$GNUPGHOME  $dcore resource-cat -u $USER_FINGERPRINT -d $DOC_NAME --resource-name test
+
+GNUPGHOME=$GNUPGHOME  $dcore resource-set -u $USER_FINGERPRINT \
+                                                      -d $DOC_NAME \
+                                                      -r test \
+                                                      -k hello  \
+                                                      -v dcore
+GNUPGHOME=$GNUPGHOME  $dcore resource-cat -u $USER_FINGERPRINT -d $DOC_NAME --resource-name test

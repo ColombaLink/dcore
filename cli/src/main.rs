@@ -30,6 +30,7 @@ enum DcoreSubCommands {
     ResourceListAll(ResourceListAllArgs),
     ResourceCat(ResourceCatArgs),
     ResourceSet(ResourceSetArgs),
+    ResourceAdd(ResourceAddArgs),
 }
 
 fn main() {
@@ -43,6 +44,7 @@ fn main() {
         DcoreSubCommands::ResourceListAll(args) => resource_list_all(args),
         DcoreSubCommands::ResourceCat(args) => resource_cat(args),
         DcoreSubCommands::ResourceSet(args) => resource_set(args),
+        DcoreSubCommands::ResourceAdd(args) => resource_add(args),
     };
 }
 
@@ -318,6 +320,49 @@ fn resource_set(args: ResourceSetArgs) -> Result<(), Box<dyn Error>> {
     let mut doc = Document::new(doc_init_option).expect("Failed to create document");
     doc.load().expect("Failed to load document");
     doc.update_resource_with_key_value(&args.resource_name, &args.key, &args.value)
+        .expect("Failed to update resource");
+
+    Ok(())
+}
+
+/// Set a key value property of a resource
+///
+/// dcore resource-set
+#[derive(clap::Parser)]
+struct ResourceAddArgs {
+    /// User identity fingerprint
+    #[clap(short, long)]
+    user_id_fingerprint: String,
+
+    /// Path to the document directory
+    #[clap(short, long)]
+    document_path: String,
+
+    /// Name of the resource
+    #[clap(short, long)]
+    resource_name: String,
+}
+fn resource_add(args: ResourceAddArgs) -> Result<(), Box<dyn Error>> {
+    let directory = PathBuf::from(&args.document_path);
+    let name = directory.file_name().unwrap().to_str().unwrap().to_string();
+
+    let identity = Identity::get_identity(dcore::identity::GetIdentityArgs {
+        keyring_home_dir: None,
+        fingerprint: args.user_id_fingerprint,
+    })
+        .expect("Failed to get identity with the provided fingerprint");
+
+    let doc_init_option = DocumentNewOptions {
+        directory,
+        name,
+        identity_fingerprint: identity.fingerprint.clone(),
+    };
+
+    // todo: we need to be able to load the doc without the identity
+    //       for the case that a user just want to list them without... makes only sense for unencrypted docs...
+    let mut doc = Document::new(doc_init_option).expect("Failed to create document");
+    doc.load().expect("Failed to load document");
+    doc.add_resource(args.resource_name)
         .expect("Failed to update resource");
 
     Ok(())

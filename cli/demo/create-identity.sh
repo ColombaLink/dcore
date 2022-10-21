@@ -1,6 +1,6 @@
 GNUPGHOME=./gpghome
 DOC_NAME=test-doc
-dcore=../target/debug/dcore
+dcore=../../target/debug/cli
 clear
 
 echo "create a new identity"
