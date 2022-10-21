@@ -542,13 +542,13 @@ mod tests {
 
         doc.add_resource("test".to_string()).unwrap();
 
-        let result =  fs::read("./.test/doc/add_resource/.data/refs/heads/test/A84E5D451E9E75B4791556896F45F34A926FBB70").unwrap();
+        let result =  fs::read("./.test/doc/update_test_resource_with_key_value/.data/refs/heads/test/A84E5D451E9E75B4791556896F45F34A926FBB70/device-0").unwrap();
         assert_eq!(result.len(), 41);
 
         doc.update_resource_with_key_value("test", "entry", "1234").unwrap();
 
         let result = doc.resources.get("test").unwrap().get_content();
-        assert_eq!(result, "..");
+        assert_eq!(result, "{entry: 1234}");
     }
 
     #[test]
@@ -568,7 +568,7 @@ mod tests {
 
         doc.add_resource("test".to_string()).unwrap();
 
-        let result =  fs::read("./.test/doc/add_resource/.data/refs/heads/test/A84E5D451E9E75B4791556896F45F34A926FBB70").unwrap();
+        let result =  fs::read("./.test/doc/reload_update_test_resource_with_key_value/.data/refs/heads/test/A84E5D451E9E75B4791556896F45F34A926FBB70/device-0").unwrap();
         assert_eq!(result.len(), 41);
 
         doc.update_resource_with_key_value("test", "test", "1234").unwrap();
