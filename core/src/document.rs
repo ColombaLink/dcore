@@ -288,7 +288,6 @@ impl Document {
         let update = resource
             .add_local_update(|mut transaction| {
                 let mut key_parts = key.split(".");
-                let root_key = key_parts.next().unwrap();
                 let root_map = transaction.get_map("root");
                 let mut current_map = root_map.clone();
 
