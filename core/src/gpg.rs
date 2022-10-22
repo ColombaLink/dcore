@@ -77,7 +77,7 @@ impl Gpg {
     }
 
 
-    fn decrypt(&mut self, ciphertext: &Vec<u8>) -> Result<String, Error> {
+ pub   fn decrypt(&mut self, ciphertext: &Vec<u8>) -> Result<String, Error> {
     let ctx = self.context.borrow_mut();
         let mut plaintext = Vec::new();
     ctx.decrypt_and_verify_with_flags(
