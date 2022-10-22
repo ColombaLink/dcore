@@ -3,7 +3,7 @@ pub use crate::identity::Identity;
 
 pub mod document;
 mod document_utils;
-mod errors;
+pub mod errors;
 mod event;
 pub mod gpg;
 pub mod identity;
