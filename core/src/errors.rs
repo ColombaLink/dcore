@@ -2,7 +2,7 @@ use std::str::Utf8Error;
 
 use thiserror::Error;
 
-#[derive(Debug, Error)]
+#[derive(Debug, Error, Serialize)]
 pub enum Error {
     #[error("internal I/O error")]
     IO(#[from] std::io::Error),
