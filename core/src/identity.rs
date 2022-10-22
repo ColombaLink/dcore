@@ -14,14 +14,14 @@ impl Identity {
 }
 
 impl Identity {
-    pub(crate) fn from_fingerprint(gpg: &mut Gpg, fingerprint: &String) -> Result<Identity, Error> {
+    pub fn from_fingerprint(gpg: &mut Gpg, fingerprint: &String) -> Result<Identity, Error> {
         let key = gpg.get_public_key(fingerprint)?;
         Ok(Identity { key })
     }
 }
 
 impl Identity {
-    pub(crate) fn from_key(key: Key) -> Identity {
+    pub fn from_key(key: Key) -> Identity {
         Identity { key }
     }
 }

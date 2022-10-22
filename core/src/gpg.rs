@@ -56,7 +56,7 @@ impl Gpg {
 
 impl Gpg {
     #[allow(dead_code)]
-    pub(crate) fn encypt(
+    pub fn encypt(
         &mut self,
         update: &Vec<u8>,
         identity: &Identity,
