@@ -75,6 +75,19 @@ impl Gpg {
         .unwrap();
         Ok(String::from_utf8(ciphertext).unwrap())
     }
+
+
+    fn decrypt(&mut self, ciphertext: &Vec<u8>) -> Result<String, Error> {
+    let ctx = self.context.borrow_mut();
+        let mut plaintext = Vec::new();
+    ctx.decrypt_and_verify_with_flags(
+        ciphertext,
+        &mut plaintext,
+        gpgme::DecryptFlags::VERIFY,
+    )
+        .unwrap();
+    Ok(String::from_utf8(plaintext.clone()).unwrap())
+}
 }
 
 pub struct Key {
@@ -419,6 +432,45 @@ mod tests {
             .expect("encryption must work");
         assert_eq!(r.len(), 699);
     }
+
+
+    #[test]
+    fn test_encryption_and_decryption() {
+        create_test_env("./.test/gpg/sign/gpghome");
+        let mut gpg = Gpg::new();
+
+        let user_id = String::from("Alice <alice@colomba.link>");
+        let key_gen_result = match gpg.context.create_key_with_flags(
+            user_id,
+            "default",
+            Duration::from_secs(0), // did not figure out to import default
+            gpgme::CreateKeyFlags::from(CreateKeyFlags::NOEXPIRE),
+        ) {
+            Ok(r) => Result::Ok(r),
+            Err(e) => Result::Err(Error::GpgmeError(e)),
+        }
+            .expect("key must be created");
+
+        let fingerprint = match key_gen_result.fingerprint() {
+            Ok(r) => Result::Ok(String::from(r)),
+            // todo: handle this error properly, don't know how to handle this error..
+            Err(e) => Result::Err(Error::Utf8Error(e.expect(""))),
+        }
+            .expect("fingerprint must be defined");
+
+        let key_with_public_key = gpg.get_public_key(&fingerprint).unwrap();
+        let identity = Identity::from_key(key_with_public_key);
+        let content = String::from("hello world").as_bytes().to_vec();
+        let r = gpg
+            .encypt(&content, &identity)
+            .expect("encryption must work");
+
+        let decrypted = gpg.decrypt(&r.as_bytes().to_vec()       ).expect("decryption must work");
+
+        assert_eq!(decrypted, "hello world");
+        assert_eq!(r.len(), 699);
+    }
+
 
     #[test]
     fn test_go() {
