@@ -80,13 +80,16 @@ impl Gpg {
  pub fn decrypt(&mut self, ciphertext: &Vec<u8>) -> Result<String, Error> {
     let ctx = self.context.borrow_mut();
         let mut plaintext = Vec::new();
-    ctx.decrypt_and_verify_with_flags(
-        ciphertext,
-        &mut plaintext,
-        gpgme::DecryptFlags::VERIFY,
-    )
-        .unwrap();
-    Ok(String::from_utf8(plaintext.clone()).unwrap())
+
+     let result = ctx.decrypt_and_verify_with_flags(
+         ciphertext,
+         &mut plaintext,
+         gpgme::DecryptFlags::VERIFY,
+     );
+     match result {
+            Ok(r) => Ok(String::from_utf8(plaintext).unwrap()),
+            Err(e) => Err(Error::GpgError(e)),
+     }
 }
 }
 
