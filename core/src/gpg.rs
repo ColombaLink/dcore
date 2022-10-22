@@ -131,8 +131,8 @@ impl Gpg {
         write!(user_id, "{} <{}>", user.name, user.email).unwrap();
         let key_gen_result = match self.context.create_key_with_flags(
             user_id,
-            // "default",
-            "ed25519",
+            "default",
+           // "ed25519",
             Duration::from_secs(0), // did not figure out to import default
             gpgme::CreateKeyFlags::from(CreateKeyFlags::NOEXPIRE),
         ) {
