@@ -88,7 +88,7 @@ impl Gpg {
      );
      match result {
             Ok(r) => Ok(String::from_utf8(plaintext).unwrap()),
-            Err(e) => Err(Error::GpgError(e)),
+            Err(e) => Err(Error::GpgmeError(e)),
      }
 }
 }
