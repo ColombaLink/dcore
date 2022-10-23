@@ -11,7 +11,7 @@ use crate::errors::Error;
 use crate::Identity;
 
 pub struct Gpg {
-    context: gpgme::Context,
+    pub context: gpgme::Context,
 }
 
 impl Gpg {
