@@ -12,4 +12,4 @@ pub mod resource;
 
 #[cfg(test)]
 mod test_utils;
-mod sync_git;
+pub mod sync_git;
