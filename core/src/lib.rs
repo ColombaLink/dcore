@@ -8,7 +8,7 @@ mod event;
 pub mod gpg;
 pub mod identity;
 mod sync_libp2p;
-mod resource;
+pub mod resource;
 
 #[cfg(test)]
 mod test_utils;
