@@ -206,7 +206,7 @@ impl Document {
 
 
         for resource_name in resources {
-            println!("Loading resource: {}", resource_name);
+            //println!("Loading resource: {}", resource_name);
 
 
 
@@ -235,7 +235,7 @@ impl Document {
             let mut t = resource.store.transact();
             for oid in resource_logs_head_oids {
                 revwalk.push(oid).map_err(|e| Error::GitError(e)).unwrap();
-                println!("log: {}", oid.to_string());
+                //println!("log: {}", oid.to_string());
                 let updates = revwalk
                     .flat_map(|id| self.repository.find_commit(id.unwrap()))
                     .map(|commit| commit.tree().unwrap())
@@ -329,7 +329,7 @@ impl Document {
                     if key_parts.clone().peekable().peek().is_some() {
                         // there will be a next key
                         // check if the current key already exists
-                        println!("key: {}", key);
+                        //println!("key: {}", key);
                         match current_map.get(key) {
                             Some(map) => current_map = map.to_ymap().unwrap().clone(),
                             None => {

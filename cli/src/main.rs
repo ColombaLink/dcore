@@ -165,7 +165,7 @@ fn document_create(args: DocumentCreateArgs) -> Result<(), Box<dyn Error>> {
             .expect("Failed to get public key by identity");
         String::from_utf8(public_key).expect("Failed to convert public key to string")
     };
-    println!("Public key: {}", public_key);
+   // println!("Public key: {}", public_key);
 
     let _document = doc
         .init(&identity.fingerprint, &public_key)
@@ -222,7 +222,7 @@ fn resource_list_all(args: ResourceListAllArgs) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-/// Cat the current content of  document
+/// Cat the current content of resource
 ///
 /// dcore resource-cat
 #[derive(clap::Parser)]
