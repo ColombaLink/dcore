@@ -319,9 +319,12 @@ impl Document {
         value: &str,
     ) -> Result<(), Error> {
         let resource = self.resources.get_mut(resource_name).unwrap();
+        println!("{}",&resource.get_content());
         let update = resource
-            .add_local_update(|mut transaction| {
-                let mut key_parts = key.split(".");
+            .add_local_update(|mut transaction| { // what are the "|" for here?
+                println!("{}",&key);
+                let mut key_parts = key.split("."); // what parts does a key have?
+
                 let root_map = transaction.get_map("root");
                 let mut current_map = root_map.clone();
 
