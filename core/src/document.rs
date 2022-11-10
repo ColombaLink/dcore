@@ -249,8 +249,13 @@ impl Document {
                     .map(|blob| blob.content().to_vec())
                     .map(|content| Update::decode_v2(content.as_slice()).unwrap());
 
-                let update = Update::merge_updates(updates);
-                t.apply_update(update);
+                // merge_updates leads to an nondeterministic result
+                //let update = Update::merge_updates(updates);
+                //t.apply_update(update);
+
+                for update in updates{
+                    t.apply_update(update);
+                }
             }
 
             t.commit();
@@ -613,7 +618,59 @@ mod tests {
 
         let result = doc.resources.get("test").unwrap().get_content();
         assert_eq!(result, "{entry: 1234}");
+
+        doc.update_resource_with_key_value("test", "entry2", "2345").unwrap();
+
+        let result = doc.resources.get("test").unwrap().get_root();
+        assert_eq!(result.get("entry2").unwrap().to_string(), "2345");
+
+        doc.update_resource_with_key_value("test", "entry", "newValueSameKey").unwrap();
+
+        let result = doc.resources.get("test").unwrap().get_root();
+        assert_eq!(result.get("entry").unwrap().to_string(), "newValueSameKey");
+
+        // 2th time doc loaded
+
+        let doc_to_load = &mut Document::new(DocumentNewOptions {
+            directory: PathBuf::from(doc_dir),
+            identity_fingerprint: "A84E5D451E9E75B4791556896F45F34A926FBB70".to_string(),
+            name: String::from("name"),
+        })
+            .unwrap();
+
+        doc_to_load.load().unwrap();
+
+        let result = doc_to_load.resources.get("test").unwrap().get_root();
+        println!("first document reloaded {}" ,result.to_json().to_string());
+        assert_eq!(result.get("entry").unwrap().to_string(), "newValueSameKey");
+
+
+
+        let res=doc_to_load.update_resource_with_key_value("test", "entry", "newLoadedDocVal").unwrap();
+
+        let result = doc_to_load.resources.get("test").unwrap().get_root();
+        println!("first doc reload after write  {}",result.to_json().to_string());
+        assert_eq!(result.get("entry").unwrap().to_string(), "newLoadedDocVal");
+
+        // 3rt time doc is loaded
+
+        let doc_to_load_again = &mut Document::new(DocumentNewOptions {
+            directory: PathBuf::from(doc_dir),
+            identity_fingerprint: "A84E5D451E9E75B4791556896F45F34A926FBB70".to_string(),
+            name: String::from("name"),
+        })
+            .unwrap();
+
+        doc_to_load_again.load().unwrap();
+        let result = doc_to_load_again.resources.get("test").unwrap().get_root();
+        println!("again 1   {}",result.to_json().to_string());
+        assert_eq!(result.get("entry").unwrap().to_string(), "newLoadedDocVal");
+
+
+
     }
+
+
 
     #[test]
     fn reload_update_test_resource_with_key_value() {

@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 git2 = "0.15"
-yrs = "0.12.0"
+yrs = "0.12.2"
 libp2p = "0.48.0"
 futures-timer = "3.0.2"
 gpgme = "0.10.0"

@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use git2::Error;
-use yrs::{Transaction, UpdateEvent};
+use yrs::{Map, Transaction, UpdateEvent};
 
 use crate::event::{EventHandler, Subscription};
 
@@ -79,6 +79,12 @@ impl Resource {
         let content = transaction.get_map("root").to_json().to_string();
         content
     }
+
+    pub fn get_root(&self) -> Map {
+        let mut transaction = self.store.transact();
+        transaction.get_map("root")
+    }
+
 }
 
 #[cfg(test)]
