@@ -7,7 +7,7 @@ pub mod errors;
 mod event;
 pub mod gpg;
 pub mod identity;
-mod sync_libp2p;
+mod sync_ipfs;
 pub mod resource;
 
 #[cfg(test)]

@@ -1,7 +1,6 @@
 use std::borrow::Borrow;
 use std::collections::{HashMap, HashSet};
 use git2::{BranchType, Cred, PushOptions};
-use libp2p::swarm::KeepAlive::No;
 use crate::{Document, Identity};
 use crate::errors::Error;
 
