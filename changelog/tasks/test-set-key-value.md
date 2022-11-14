@@ -7,6 +7,13 @@ Prob. there is a bug in document.rs:328 where the key value pair is not set corr
 
 The reload_update_test_resource_with_key_value function can be extended for more extensive testing.
 
+## Bug 
+
+The bug that caused the nondeterministic behavior was caused by the yjs merge function. 
+Something goes wrong when merging multiple updates.
+
+Let's try to replicate this with only the yjs library in a test case.
+Then create a bug report for the yjs library on github.
 
 # Rust Notes & Examples
 
