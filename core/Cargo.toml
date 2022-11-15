@@ -15,6 +15,7 @@ thiserror = "1.0.37"
 der = "0.6.0"
 fs_extra = "1.2.0"
 ipfs-embed-core = "0.10.0"
+ipfs-embed = "0.25.1"
 libipld = "0.14.0"
 tempdir = "0.3.7"
 tracing-subscriber = { version = "0.3.1", features = ["env-filter"] }
@@ -47,5 +48,3 @@ version = "0.3.1"
 version = "1.6.2"
 features = ["attributes"]
 
-[dev-dependencies]
-ipfs-embed = "0.25.0"
