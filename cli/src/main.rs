@@ -131,6 +131,11 @@ struct DocumentCreateArgs {
     #[clap(short, long)]
     document_name: String,
 
+    /// device name
+    #[clap(long)]
+    device_name: Option<String>,
+
+
     /// User identity fingerprint
     #[clap(short, long)]
     user_id_fingerprint: String,
@@ -157,6 +162,14 @@ fn document_create(args: DocumentCreateArgs) -> Result<(), Box<dyn Error>> {
         identity_fingerprint: String::from(&args.user_id_fingerprint),
     };
     let mut doc = Document::new(doc_init_options).expect("Failed to create document");
+
+    match args.device_name {
+        Some(device_name) => {
+            println!("Setting device name to {}", device_name);
+            doc.config_set_local_device(&device_name).expect("Failed to set device name");
+        }
+        None => {}
+    }
 
     let public_key = {
         let gpg = &mut doc.gpg;

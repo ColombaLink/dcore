@@ -1,3 +1,5 @@
+#!/bin/bash
+
 PS4="\n\n\033[1;33m>>>\033[0m"; set -x
 export GNUPGHOME=./gpghome
 DOC_NAME=test-doc
@@ -30,7 +32,7 @@ wait
 
 USER_FINGERPRINT=$( $dcore identity-list-all | grep -o 'Fingerprint.*' | awk '{print $2}')
 
-$dcore document-create -u $USER_FINGERPRINT -d $DOC_NAME
+$dcore document-create -u $USER_FINGERPRINT -d $DOC_NAME --device-name notebook1
 
 wait
 
