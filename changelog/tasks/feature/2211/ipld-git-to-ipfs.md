@@ -45,7 +45,7 @@ We also need the inverse function that takes a `cid` and returns the git hash.
 
 ## Implementation
 
-- [ ] add the latest multihash rust-cid as a dependency https://docs.rs/cid/latest/cid/index.html
-- [ ] add a new module utils module 'utils.rs' 
-- [ ] create a function that takes a git hash and returns the multihash (cid)
-- [ ] create a function that takes a multihash (cid) and returns the git hash
+- [x] add the latest multihash rust-cid as a dependency https://docs.rs/cid/latest/cid/index.html
+- [x] add a new module utils module 'utils.rs' 
+- [x] create a function that takes a git hash and returns the multihash (cid)
+- [x] create a function that takes a multihash (cid) and returns the git hash
