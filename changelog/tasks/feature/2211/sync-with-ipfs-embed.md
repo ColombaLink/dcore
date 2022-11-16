@@ -1,5 +1,7 @@
 # Sync with IPFS embed
 
+Assigned to: @timo.castelberg, @f.parrillo 
+
 Since using Libp2p direclty and come up with a custom NetowrkBehavior, we can try to use the IPFS embed library. 
 
 This will have a few advantages:
@@ -8,13 +10,25 @@ This will have a few advantages:
 - we can use the IPFS functionalities for Peer Discovery, GossipSub, etc. if needed. 
 
 
-## Tasks
+## Tasks 1
 - [x] First task get two nodes to connect to each other and exchange a message over GossipSub.
     - finally, in the ipfs_embed lib.rs test section I found what we need!
     - Random note, sled = "0.34.0" looks like an interesting lib.
-
-
-# Custom store 
+## Task 2 - integrate ipfs_embed to document 
+- [ ] Add the ipfs as a property to the document struct 
+  - [ ] Instantiate the ipfs in the document struct (see sync_ipfs.rs for example)
+    - [ ] Don't call the listen_on method on the ipfs instance
+  - [ ] Set gc config to a very high value (not sure if if it interferes otherwise)
+  - [ ] Test if inserting and retrieving from the ipfs store works (no sync yet, just local)
+  - [ ] make the commit_update function in document_utils.rs return the oid and the blob 
+    - [ ] check that nothing breaks with this change 
+  - [ ] in document.rs: commit_update, call the ipfs store to insert the blob 
+    - [ ] Build the CID 
+    - [ ] Create a block
+    - [ ] Insert the block into the ipfs store
+    
+# Notes
+## Custom store 
 
 We can create a custom store after patching the ipfs_embed lib. 
 The store was not able to sync. This is probably because we did not implement all the functions. 
