@@ -4,9 +4,8 @@ use git2::Oid;
 use multihash::Multihash;
 
 
-const RAW: u64 = 0x55;
 
-fn oid_to_cid(githash: Oid) -> Cid {
+pub fn oid_to_cid(githash: Oid) -> Cid {
 
     const GIT_CODEC:u64 = 0x78;
 
@@ -20,7 +19,7 @@ fn oid_to_cid(githash: Oid) -> Cid {
 
 }
 
-fn cid_to_oid(cid:Cid)-> Oid{
+pub fn cid_to_oid(cid:Cid)-> Oid{
 
     let cid_hash = cid.hash(); // should be the Sha2
     let mut dec = cid_hash.digest();
