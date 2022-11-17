@@ -9,6 +9,7 @@ pub mod gpg;
 pub mod identity;
 mod sync_ipfs;
 pub mod resource;
+pub mod utils;
 
 #[cfg(test)]
 mod test_utils;
