@@ -3,6 +3,7 @@
 PS4="\n\n\033[1;33m>>>\033[0m"; set -x
 export GNUPGHOME=./gpghome
 DOC_NAME=test-doc
+DOC_NAME_CLONED=${DOC_NAME}-clone
 dcore=../../target/debug/cli
 #dcore=./dcore
 
@@ -14,7 +15,7 @@ function wait {
 }
 
 rm -rf ./gpghome
-rm -rf $DOC_NAME
+rm -rf $DOC_NAME $DOC_NAME_CLONED
 mkdir ./gpghome
 
 clear
@@ -70,4 +71,30 @@ $dcore resource-set -u $USER_FINGERPRINT \
                                                       -k hello  \
                                                       -v dcore
 wait
+$dcore resource-cat -u $USER_FINGERPRINT -d $DOC_NAME --resource-name test
+
+wait
+$dcore document-sync -u $USER_FINGERPRINT -d $DOC_NAME
+
+wait
+
+$dcore document-clone -u $USER_FINGERPRINT -d $DOC_NAME_CLONED  --device-name notebook2 --remote-url git@github.com:fuubi/gpgtest.git
+
+wait
+$dcore resource-list-all -u $USER_FINGERPRINT -d $DOC_NAME_CLONED
+wait
+
+$dcore resource-cat -u $USER_FINGERPRINT -d $DOC_NAME_CLONED --resource-name test
+
+
+$dcore resource-set -u $USER_FINGERPRINT \
+                                                      -d $DOC_NAME_CLONED \
+                                                      -r test \
+                                                      -k hello  \
+                                                      -v dcore_updated
+wait
+$dcore document-sync -u $USER_FINGERPRINT -d $DOC_NAME_CLONED
+wait
+$dcore document-sync -u $USER_FINGERPRINT -d $DOC_NAME
+
 $dcore resource-cat -u $USER_FINGERPRINT -d $DOC_NAME --resource-name test

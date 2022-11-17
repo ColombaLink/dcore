@@ -450,6 +450,10 @@ struct DocumentCloneArgs {
     #[clap(short, long)]
     document_path: String,
 
+    /// Path to the document directory
+    #[clap(long)]
+    device_name: String,
+
     /// Remote Document Url
     #[clap(short, long)]
     remote_url: String,
@@ -474,6 +478,8 @@ fn document_clone(args: DocumentCloneArgs) -> Result<(), Box<dyn Error>> {
     // todo: we need to be able to load the doc without the identity
     //       for the case that a user just want to list them without... makes only sense for unencrypted docs...
     let mut doc = Document::new(doc_init_option).expect("Failed to create document");
+
+    doc.config_set_local_device(&args.device_name).expect("Failed to update resource");
 
     doc.clone(&args.remote_url).expect("Failed to clone document");
     Ok(())
