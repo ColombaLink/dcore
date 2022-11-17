@@ -1,8 +1,18 @@
 use std::borrow::Borrow;
 use std::collections::{HashMap, HashSet};
+use std::future;
+use std::future::Future;
 use std::path::PathBuf;
+use std::pin::Pin;
+use std::task::{Context, Poll};
+use std::time::Duration;
+use futures::executor;
 
 use git2::{BranchType, Repository, RepositoryInitOptions};
+use ipfs_embed::{Config, Ipfs, NetworkConfig, StorageConfig};
+use ipfs_embed::identity::ed25519::Keypair;
+use libipld::DefaultParams;
+use tempdir::TempDir;
 use yrs::updates::decoder::Decode;
 use yrs::{Map, PrelimMap, Update};
 
@@ -19,6 +29,8 @@ pub struct Document {
     pub identity: Identity,
     pub gpg: Gpg,
     pub resources: HashMap<String, Resource>,
+
+    pub ipfs:Ipfs<DefaultParams>,
 }
 
 
@@ -78,6 +90,22 @@ impl Document {
     }
 }
 
+async fn create_ipfs() ->Result<Ipfs<DefaultParams>,Error> {
+
+    let tmp = TempDir::new("ipfs-embed")?;
+    let sweep_interval = Duration::from_millis(10000);
+    let storage = StorageConfig::new(None, None, 10, sweep_interval);
+
+    let mut network = NetworkConfig::new(Keypair::generate());
+    network.mdns = None;
+
+
+    let mut ipfs: Ipfs<DefaultParams>= Ipfs::new(Config { storage, network }).await?;
+    let res= Result::Ok(ipfs);
+    return res;
+}
+
+
 
 
 unsafe impl Send for Document {}
@@ -109,12 +137,26 @@ impl Document {
                 .as_str(),
         );
 
+        // trying instantiate ipfs ..
+
+        let tmp = TempDir::new("ipfs-embed")?;
+        let sweep_interval = Duration::from_millis(10000);
+        let storage = StorageConfig::new(None, None, 10, sweep_interval);
+
+        let mut network = NetworkConfig::new(Keypair::generate());
+        network.mdns = None;
+
+
+        let mut ipfs = executor::block_on(create_ipfs()).unwrap();
+
+
         return Ok(Document {
             name: options.name,
             repository,
             identity,
             gpg,
             resources: HashMap::new(),
+            ipfs,
         });
     }
 
@@ -174,6 +216,7 @@ impl Document {
             identity: self.identity,
             gpg: Gpg::new(),
             resources,
+            ipfs:self.ipfs,
         })
     }
 
@@ -387,8 +430,11 @@ mod tests {
 
     use fs_extra::dir::CopyOptions;
     use std::path::PathBuf;
+    use ipfs_embed::multiaddr::multihash::Code;
+    use ipfs_embed_core::Block;
 
     use lib0::any::Any;
+    use libipld::raw::RawCodec;
 
     use crate::document::DocumentNewOptions;
     use crate::Document;
@@ -408,12 +454,12 @@ mod tests {
             directory: PathBuf::from(doc_dir),
             identity_fingerprint: get_test_key().fingerprint,
             name: String::from("name"),
-        })
-        .unwrap();
+        }).
+        unwrap();
     }
 
     #[test]
-    fn init_new_doc() {
+     fn init_new_doc() {
         let doc_dir = "./.test/doc/init_new_doc/";
         let (_dir, key) = create_test_env_with_sample_gpg_key(doc_dir.to_string());
 
@@ -444,7 +490,7 @@ mod tests {
     }
 
     #[test]
-    fn load_doc() {
+     fn load_doc() {
         let doc_dir = "./.test/doc/load_doc/";
         let (_dir, key) = create_test_env_with_new_gpg_key(doc_dir.to_string());
 
@@ -478,7 +524,7 @@ mod tests {
     }
 
     #[test]
-    fn update_resource() {
+     fn update_resource() {
         let doc_dir = "./.test/doc/init_new_doc/";
         create_test_env_with_sample_gpg_key(doc_dir.to_string());
         let doc = Document::new(DocumentNewOptions {
@@ -543,7 +589,7 @@ mod tests {
     }
 
     #[test]
-    fn add_resource() {
+     fn add_resource() {
         let doc_dir = "./.test/doc/add_resource/";
         create_test_env_with_test_gpg_key(doc_dir.to_string());
         let doc = Document::new(DocumentNewOptions {
@@ -613,7 +659,7 @@ mod tests {
     }
 
     #[test]
-    fn reload_update_test_resource_with_key_value() {
+     fn reload_update_test_resource_with_key_value() {
         let doc_dir = "./.test/doc/reload_update_test_resource_with_key_value/";
         create_test_env_with_test_gpg_key(doc_dir.to_string());
         let doc = Document::new(DocumentNewOptions {
@@ -677,5 +723,44 @@ mod tests {
         assert_eq!(result.len(), 41);
 
     }
+
+    //#[async_std::test]
+   /* async fn ipfs_store_insert_retrieve()-> ipfs_embed_core::Result<()>{
+
+        let doc_dir = "./.test/doc/reload_update_test_resource_with_key_value/";
+        create_test_env_with_test_gpg_key(doc_dir.to_string());
+        let doc = Document::new(DocumentNewOptions {
+            directory: PathBuf::from(doc_dir),
+            identity_fingerprint: "A84E5D451E9E75B4791556896F45F34A926FBB70".to_string(),
+            name: String::from("name"),
+        })
+            .await.unwrap();
+
+        let mut doc = doc
+            .init(&get_test_key().fingerprint, &get_test_key().public_key)
+            .unwrap();
+
+
+
+        //tracing_try_init();   copied =>
+        tracing_subscriber::fmt()
+            .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
+            .init();
+        // not sure what this does...
+
+        //let (store, _tmp) = create_store(false).await?;
+        //let block = create_block(b"test_local_store")?;
+        let block =Block::encode(RawCodec, Code::Blake3_256, b"test_local_store");
+
+        let mut tmp = store.create_temp_pin()?;
+        store.temp_pin(&mut tmp, block.cid())?;
+        let _ = store.insert(block.clone())?;
+        let block2 = store.get(block.cid())?;
+        assert_eq!(block.data(), block2.data());
+        Ok(())
+
+
+
+    }*/
 
 }

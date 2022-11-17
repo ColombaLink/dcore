@@ -21,4 +21,9 @@ pub enum Error {
 
     #[error("`{0}`")]
     DcoreError(String),
+
+    #[error("`{0}`")]
+    IpfsError(#[from] ipfs_embed_core::Error),
+
+
 }
