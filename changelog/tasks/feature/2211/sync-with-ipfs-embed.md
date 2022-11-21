@@ -27,6 +27,11 @@ This will have a few advantages:
     - [ ] Create a block
     - [ ] Insert the block into the ipfs store
     
+### Task 2 - feedback
+  - [ ] don't use the tmp dir for the ipfs store, use the same dir as the document store (./.data-ipfs)
+  - [ ] Change the ipfs property to an option value 
+  - [ ] Add an optional property to the document new constructor argument that holds the ipfs configs used to instantiate ipfs
+    - [ ] if the ipfs config is not provided, the ipfs property is set to None
 # Notes
 ## Custom store 
 
