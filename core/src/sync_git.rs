@@ -166,6 +166,7 @@ mod tests {
             directory: PathBuf::from(doc_dir),
             identity_fingerprint: "A84E5D451E9E75B4791556896F45F34A926FBB70".to_string(),
             name: String::from("name"),
+            ipfs_config:None,
         }).unwrap();
         let mut doc = doc
             .init(&get_test_key().fingerprint, &get_test_key().public_key)
@@ -185,6 +186,7 @@ mod tests {
             directory: PathBuf::from(doc_dir),
             identity_fingerprint: "A84E5D451E9E75B4791556896F45F34A926FBB70".to_string(),
             name: String::from("name"),
+            ipfs_config:None,
         }).unwrap();
         let mut doc = doc
             .init(&get_test_key().fingerprint, &get_test_key().public_key)

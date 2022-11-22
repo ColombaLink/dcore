@@ -100,6 +100,8 @@ mod tests {
             directory: PathBuf::from(doc_dir),
             identity_fingerprint: "todo".to_string(),
             name: String::from("name"),
+            ipfs_config:None,
+
         })
         .unwrap();
         let _doc = doc
@@ -125,6 +127,7 @@ mod tests {
             directory: PathBuf::from(doc_dir),
             identity_fingerprint: "todo".to_string(),
             name: String::from("name"),
+            ipfs_config:None,
         })
         .unwrap();
         let _doc = doc
@@ -147,6 +150,7 @@ mod tests {
             directory: PathBuf::from(doc_dir),
             identity_fingerprint: "todo".to_string(),
             name: String::from("name"),
+            ipfs_config:None,
         })
         .unwrap();
         let _doc = doc
