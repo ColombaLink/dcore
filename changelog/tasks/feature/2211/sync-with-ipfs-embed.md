@@ -15,11 +15,11 @@ This will have a few advantages:
     - finally, in the ipfs_embed lib.rs test section I found what we need!
     - Random note, sled = "0.34.0" looks like an interesting lib.
 ## Task 2 - integrate ipfs_embed to document 
-- [ ] Add the ipfs as a property to the document struct 
-  - [ ] Instantiate the ipfs in the document struct (see sync_ipfs.rs for example)
-    - [ ] Don't call the listen_on method on the ipfs instance
-  - [ ] Set gc config to a very high value (not sure if if it interferes otherwise)
-  - [ ] Test if inserting and retrieving from the ipfs store works (no sync yet, just local)
+- [x] Add the ipfs as a property to the document struct 
+  - [x] Instantiate the ipfs in the document struct (see sync_ipfs.rs for example)
+    - [x] Don't call the listen_on method on the ipfs instance
+  - [x] Set gc config to a very high value (not sure if if it interferes otherwise)
+  - [x] Test if inserting and retrieving from the ipfs store works (no sync yet, just local)
   - [ ] make the commit_update function in document_utils.rs return the oid and the blob 
     - [ ] check that nothing breaks with this change 
   - [ ] in document.rs: commit_update, call the ipfs store to insert the blob 
