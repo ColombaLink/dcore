@@ -27,6 +27,8 @@ use libipld::{store::StoreParams, Cid, IpldCodec, Block, Ipld};
 use libipld::{
     alias, cbor::DagCborCodec, ipld, multihash::Code, raw::RawCodec,
 };
+use libipld::IpldCodec::Raw;
+use crate::utils::oid_to_cid;
 
 pub struct Document {
     pub name: String,
@@ -91,6 +93,11 @@ impl Document {
         self.repository.remote_set_url("origin", remote)?;
         GitSync::clone(self, remote);
         Ok(())
+    }
+
+    // work-araound
+    pub fn clone_without_repo(self) -> Document {
+        self
     }
 
     pub fn sync(self) -> Result<(), Error> {
@@ -172,7 +179,7 @@ impl Document {
     }
 
     /// Frist call Document::new(...) then doc.init() to create the config resource
-    pub fn init(self, fingerprint: &String, public_key: &String) -> Result<Document, Error> {
+    pub fn init( self, fingerprint: &String, public_key: &String) -> Result<Document, Error> {
         if self.resources.contains_key("config") {
             return Err(Error::Other(
                 "Document already initialized because the config resource exists".to_string(),
@@ -231,9 +238,21 @@ impl Document {
         })
     }
 
-    fn commit_update(&self, update: &Vec<u8>, resource: &Resource) {
+    fn commit_update( &self, update: &Vec<u8>, resource: &Resource) {
         DocumentUtils::commit_update(&self, resource, update.to_owned())
             .expect("TODO: panic message");
+
+
+        if self.ipfs.is_some() {
+            let update_oid = self.repository.blob(&update).unwrap();
+            let cid = oid_to_cid(update_oid);
+            let block_create: ipfs_embed::Block<DefaultParams> = Block::encode(Raw, Code::Blake3_256, &ipld!(update.as_slice())).unwrap();
+
+            self.ipfs.as_ref().unwrap().insert(block_create.clone()).expect("Could not insert block to IPFS store");
+
+            //self.ipfs.unwrap().alias(x, Some(c1.cid()))?; What is this for?
+            self.ipfs.as_ref().unwrap().flush();
+        }
     }
 
     pub fn load(&mut self) -> Result<(), Error> {
@@ -399,8 +418,9 @@ impl Document {
             })
             .unwrap();
 
+
         let resource1 = self.resources.get(resource_name).unwrap();
-        self.commit_update(&update, &resource1);
+        self.commit_update(&update, resource1);
         Ok(())
     }
 
@@ -429,7 +449,6 @@ impl Document {
 
 #[cfg(test)]
 mod tests {
-
     use std::collections::HashMap;
     use std::{fs, thread};
 
@@ -467,7 +486,7 @@ mod tests {
             name: String::from("name"),
             ipfs_config: None,
         })
-        .unwrap();
+            .unwrap();
     }
 
     #[test]
@@ -481,7 +500,7 @@ mod tests {
             name: String::from("test-doc1"),
             ipfs_config: None,
         })
-        .unwrap();
+            .unwrap();
 
         let doc = doc
             .init(&get_test_key().fingerprint, &get_test_key().public_key)
@@ -513,7 +532,7 @@ mod tests {
             name: String::from("test-doc1"),
             ipfs_config: None,
         })
-        .unwrap();
+            .unwrap();
 
         let doc = &mut doc
             .init(&key.fingerprint, &get_test_key().public_key)
@@ -525,7 +544,7 @@ mod tests {
             name: String::from("test-doc1"),
             ipfs_config: None,
         })
-        .unwrap();
+            .unwrap();
 
         doc_to_load.load().unwrap();
 
@@ -548,7 +567,7 @@ mod tests {
             name: String::from("name"),
             ipfs_config: None,
         })
-        .unwrap();
+            .unwrap();
 
         let mut doc = doc
             .init(&get_test_key().fingerprint, &get_test_key().public_key)
@@ -571,7 +590,7 @@ mod tests {
 
             transaction
         })
-        .unwrap();
+            .unwrap();
 
         let resource = r.store.transact().get_map("config").to_json();
         let expected = Any::from_json(
@@ -582,7 +601,7 @@ mod tests {
               }
             }"#,
         )
-        .unwrap();
+            .unwrap();
         assert_eq!(resource, expected);
 
         let doc_to_load = &mut Document::new(DocumentNewOptions {
@@ -591,7 +610,7 @@ mod tests {
             name: String::from("test-doc1"),
             ipfs_config: None,
         })
-        .unwrap();
+            .unwrap();
 
         doc_to_load.load().unwrap();
 
@@ -614,7 +633,7 @@ mod tests {
             name: String::from("name"),
             ipfs_config: None,
         })
-        .unwrap();
+            .unwrap();
 
         let mut doc = doc
             .init(&get_test_key().fingerprint, &get_test_key().public_key)
@@ -623,7 +642,7 @@ mod tests {
         doc.resources.get_mut("config").unwrap();
         doc.add_resource("test".to_string()).unwrap();
 
-        let result =  fs::read("./.test/doc/add_resource/.data/refs/local/test/A84E5D451E9E75B4791556896F45F34A926FBB70/device-0").unwrap();
+        let result = fs::read("./.test/doc/add_resource/.data/refs/local/test/A84E5D451E9E75B4791556896F45F34A926FBB70/device-0").unwrap();
         assert_eq!(result.len(), 41);
     }
 
@@ -637,7 +656,7 @@ mod tests {
             name: String::from("name"),
             ipfs_config: None,
         })
-        .unwrap();
+            .unwrap();
 
         let mut doc = doc
             .init(&key.fingerprint, &get_test_key().public_key)
@@ -660,7 +679,7 @@ mod tests {
             name: String::from("name"),
             ipfs_config: None,
         })
-        .unwrap();
+            .unwrap();
 
         let mut doc = doc
             .init(&get_test_key().fingerprint, &get_test_key().public_key)
@@ -668,7 +687,7 @@ mod tests {
 
         doc.add_resource("test".to_string()).unwrap();
 
-        let result =  fs::read("./.test/doc/update_test_resource_with_key_value/.data/refs/local/test/A84E5D451E9E75B4791556896F45F34A926FBB70/device-0").unwrap();
+        let result = fs::read("./.test/doc/update_test_resource_with_key_value/.data/refs/local/test/A84E5D451E9E75B4791556896F45F34A926FBB70/device-0").unwrap();
         assert_eq!(result.len(), 41);
 
         doc.update_resource_with_key_value("test", "entry", "1234")
@@ -688,7 +707,7 @@ mod tests {
             name: String::from("name"),
             ipfs_config: None,
         })
-        .unwrap();
+            .unwrap();
 
         let mut doc = doc
             .init(&get_test_key().fingerprint, &get_test_key().public_key)
@@ -696,7 +715,7 @@ mod tests {
 
         doc.add_resource("test".to_string()).unwrap();
 
-        let result =  fs::read("./.test/doc/reload_update_test_resource_with_key_value/.data/refs/local/test/A84E5D451E9E75B4791556896F45F34A926FBB70/device-0").unwrap();
+        let result = fs::read("./.test/doc/reload_update_test_resource_with_key_value/.data/refs/local/test/A84E5D451E9E75B4791556896F45F34A926FBB70/device-0").unwrap();
         assert_eq!(result.len(), 41);
 
         doc.update_resource_with_key_value("test", "test", "1234")
@@ -710,7 +729,7 @@ mod tests {
             name: String::from("name"),
             ipfs_config: None,
         })
-        .unwrap();
+            .unwrap();
 
         doc.load().unwrap();
 
@@ -732,7 +751,7 @@ mod tests {
             name: String::from("name"),
             ipfs_config: None,
         })
-        .unwrap();
+            .unwrap();
 
         doc.config_set_local_device("dev0").unwrap();
 
@@ -742,7 +761,7 @@ mod tests {
 
         doc.add_resource("test".to_string()).unwrap();
 
-        let result =  fs::read("./.test/doc/config_set_device_name/.data/refs/local/test/A84E5D451E9E75B4791556896F45F34A926FBB70/dev0").unwrap();
+        let result = fs::read("./.test/doc/config_set_device_name/.data/refs/local/test/A84E5D451E9E75B4791556896F45F34A926FBB70/dev0").unwrap();
         assert_eq!(result.len(), 41);
     }
 
@@ -769,8 +788,8 @@ mod tests {
         };
     }
 
-    fn create_ipld_block(ipld: &Ipld) -> ipfs_embed_core::Result<Block<DefaultParams>>{
-        Block::encode(DagCborCodec,Code::Blake3_256,ipld)
+    fn create_ipld_block(ipld: &Ipld) -> ipfs_embed_core::Result<Block<DefaultParams>> {
+        Block::encode(DagCborCodec, Code::Blake3_256, ipld)
     }
 
 
@@ -792,7 +811,7 @@ mod tests {
             name: String::from("name"),
             ipfs_config: Option::from(Config { storage, network }),
         })
-        .unwrap();
+            .unwrap();
 
         let mut doc1: Document = doc1
             .init(&get_test_key().fingerprint, &get_test_key().public_key)
@@ -811,7 +830,7 @@ mod tests {
             name: String::from("name"),
             ipfs_config: Option::from(Config { storage, network }),
         })
-        .unwrap();
+            .unwrap();
 
         let mut doc2: Document = doc2
             .init(&get_test_key().fingerprint, &get_test_key().public_key)
@@ -847,7 +866,6 @@ mod tests {
         let b2 = create_ipld_block(&ipld!({ "b": 1 }))?;
         let c2 = create_ipld_block(&ipld!({ "c": [a1.cid(), b2.cid()] }))?;
         let x = alias!(x);
-
 
 
         let _ = local1.insert(a1.clone())?;

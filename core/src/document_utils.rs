@@ -1,3 +1,4 @@
+use git2::{Blob, Oid};
 use crate::gpg::Gpg;
 use crate::resource::Resource;
 use crate::Document;
@@ -5,11 +6,11 @@ use crate::Document;
 pub struct DocumentUtils;
 
 impl DocumentUtils {
-    pub fn commit_update(
-        doc: &Document,
+    pub fn commit_update<'a>(
+        doc: &'a Document,
         _resource: &Resource,
         update: Vec<u8>,
-    ) -> Result<(), git2::Error> {
+    ) -> Result<(Oid, Blob<'a>), git2::Error> {
         let repo = &doc.repository;
         let resource_name = &_resource.name;
         let user_fingerprint = &doc.identity.get_fingerprint();
@@ -35,6 +36,10 @@ impl DocumentUtils {
         };
 
         let update_oid = repo.blob(&update).unwrap();
+
+        let blob_to_return = repo.find_blob(update_oid.clone()).unwrap();
+        let oid_to_return= update_oid.clone();
+
         let mut builder = repo.treebuilder(None).unwrap();
         builder.insert("update", update_oid, 0o100644).unwrap();
         let update_tree_oid = builder.write().unwrap();
@@ -89,6 +94,6 @@ impl DocumentUtils {
         repo.reference(&log_name, new_signed_commit, true, "update ref")
             .expect("Could not update the reference with the new commit.");
 
-        Ok(())
+        Ok((oid_to_return,blob_to_return))
     }
 }

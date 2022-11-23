@@ -20,18 +20,18 @@ This will have a few advantages:
     - [x] Don't call the listen_on method on the ipfs instance
   - [x] Set gc config to a very high value (not sure if if it interferes otherwise)
   - [x] Test if inserting and retrieving from the ipfs store works (no sync yet, just local)
-  - [ ] make the commit_update function in document_utils.rs return the oid and the blob 
-    - [ ] check that nothing breaks with this change 
-  - [ ] in document.rs: commit_update, call the ipfs store to insert the blob 
-    - [ ] Build the CID 
-    - [ ] Create a block
-    - [ ] Insert the block into the ipfs store
+  - [x] make the commit_update function in document_utils.rs return the oid and the blob 
+    - [x] check that nothing breaks with this change 
+  - [x] in document.rs: commit_update, call the ipfs store to insert the blob 
+    - [x] Build the CID 
+    - [x] Create a block
+    - [x] Insert the block into the ipfs store
     
 ### Task 2 - feedback
-  - [ ] don't use the tmp dir for the ipfs store, use the same dir as the document store (./.data-ipfs)
-  - [ ] Change the ipfs property to an option value 
-  - [ ] Add an optional property to the document new constructor argument that holds the ipfs configs used to instantiate ipfs
-    - [ ] if the ipfs config is not provided, the ipfs property is set to None
+  - [x] don't use the tmp dir for the ipfs store, use the same dir as the document store (./.data-ipfs)
+  - [x] Change the ipfs property to an option value 
+  - [x] Add an optional property to the document new constructor argument that holds the ipfs configs used to instantiate ipfs
+    - [x] if the ipfs config is not provided, the ipfs property is set to None
 # Notes
 ## Custom store 
 
