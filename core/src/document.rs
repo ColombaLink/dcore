@@ -240,24 +240,25 @@ impl Document {
     }
 
     fn commit_update( &self, update: &Vec<u8>, resource: &Resource) {
-        DocumentUtils::commit_update(&self, resource, update.to_owned())
+        let (blob_oid,tree_oid,commit_oid)= DocumentUtils::commit_update(&self, resource, update.to_owned())
             .expect("TODO: panic message");
 
         // IPFS store
-
-        /* This is now done in document_utils
         if self.ipfs.is_some() {
+
+            DocumentUtils::update_ipfs(self,blob_oid,tree_oid,commit_oid);
+
             //let update_oid = self.repository.blob(&update).unwrap();
             //let cid = oid_to_cid(update_oid);
-            let block_create: ipfs_embed::Block<DefaultParams> = Block::encode(Raw, Code::Blake3_256, &ipld!(update.as_slice())).unwrap();
-            let cid = block_create.cid();
-            self.ipfs.as_ref().unwrap().insert(block_create.clone()).expect("Could not insert block to IPFS store");
+            //let block_create: ipfs_embed::Block<DefaultParams> = Block::encode(Raw, Code::Blake3_256, &ipld!(update.as_slice())).unwrap();
+            //let cid = block_create.cid();
+            //self.ipfs.as_ref().unwrap().insert(block_create.clone()).expect("Could not insert block to IPFS store");
 
             //self.ipfs.unwrap().alias(x, Some(c1.cid()))?; What is this for?
-            self.ipfs.as_ref().unwrap().flush();
+            //self.ipfs.as_ref().unwrap().flush();
         }
 
-         */
+
     }
 
     pub fn load(&mut self) -> Result<(), Error> {

@@ -1,11 +1,14 @@
+use std::fs;
 use git2::{Blob, Oid, Tree};
 use libipld::{Block, DefaultParams, ipld};
 use libipld::IpldCodec::Raw;
-use libipld::multihash::Code;
+//use libipld::multihash::Code;
+use cid::multihash::Code;
 use crate::gpg::Gpg;
 use crate::resource::Resource;
 use crate::Document;
 use crate::errors::Error;
+use crate::utils::oid_to_cid;
 
 pub struct DocumentUtils;
 
@@ -14,7 +17,7 @@ impl DocumentUtils {
         doc: &Document,
         _resource: &Resource,
         update: Vec<u8>,
-    ) -> Result<(), git2::Error> {
+    ) -> Result<(Oid,Oid,Oid), git2::Error> {
         let repo = &doc.repository;
         let resource_name = &_resource.name;
         let user_fingerprint = &doc.identity.get_fingerprint();
@@ -99,42 +102,67 @@ impl DocumentUtils {
 
        // values for update_ipfs store
 
-        if doc.ipfs.is_some() {
-            let blob_to_return = repo.find_blob(update_oid.clone()).unwrap();
+            //let blob_to_return = repo.find_blob(update_oid.clone()).unwrap();
             let oid_blob = update_oid.clone();
-            let tree_to_return = update_tree;
+            //let tree_to_return = update_tree;
             let oid_tree = update_tree_oid;
-            let commit_to_return = commit_string;
+            //let commit_to_return = commit_string;
             let oid_commit = new_signed_commit;
 
-            Self::update_ipfs(doc,blob_to_return,oid_blob,tree_to_return,oid_tree,commit_to_return,oid_commit);
-        }
+           // Self::update_ipfs(doc,blob_to_return,oid_blob,tree_to_return,oid_tree,commit_to_return,oid_commit);
 
-        Ok(())
+
+        Ok((oid_blob,oid_tree,oid_commit))
     }
 
-    pub fn update_ipfs(doc:&Document, blob:Blob, oid_blob:Oid, tree:Tree, oid_tree:Oid, commit:&String, oid_commit:Oid) -> Result<(),Error>{
+    pub fn update_ipfs(doc:&Document, oid_blob:Oid, oid_tree:Oid,  oid_commit:Oid) -> Result<(),Error>{
 
-        // Blob to ipfs store
-        let block_blob: ipfs_embed::Block<DefaultParams> =Block::encode(Raw, Code::Blake3_256, &ipld!(blob.content())).unwrap();
-        //let cid = block_blob.cid();
-        doc.ipfs.as_ref().unwrap().insert(block_blob.clone()).expect("Could not insert block to IPFS store");
-        //self.ipfs.unwrap().alias(x, Some(c1.cid()))?; What is this for?
+        // Get raw git objects from Fs
+
+        let path = doc.repository.path();
+        println!("path of repo {}",path.to_str().unwrap());
+
+        let split = oid_blob.to_string();
+        let (split_oid1, split_oid2) =split.split_at(2);
+
+        let blob_path = path.join("objects/".to_owned()+split_oid1+"/"+split_oid2);
+        let path = blob_path.as_path();
+        println!("{}", path.to_str().unwrap());
+
+        let blob_raw= fs::read(path);
+        println!("{}", blob_raw.as_ref().unwrap().len());
+
+
+        //let block_blob: ipfs_embed::Block<DefaultParams> =Block::encode(GIT_CODEC, Code::Sha1, (blob.content())).unwrap();
+        let cid = oid_to_cid(oid_blob);
+        let block_blob= Block::new(cid,blob_raw.unwrap());
+
+        //Unsupported multihash 17.
+        let blocki = block_blob.as_ref();
+        println!("{}", blocki.err().unwrap());
+
+        doc.ipfs.as_ref().unwrap().insert(block_blob.unwrap()).expect("Could not insert block to IPFS store");
 
         // Tree to ipfs store
-        // the objects it points to as bytes since there is only one blob that might work.
-        //tree.iter().next().unwrap().name_bytes();
-        let block_tree: ipfs_embed::Block<DefaultParams> =Block::encode(Raw, Code::Blake3_256, &ipld!(tree.iter().next().unwrap().name_bytes())).unwrap();
-        doc.ipfs.as_ref().unwrap().insert(block_tree.clone()).expect("Could not insert block to IPFS store");
+
+
+        let split = oid_tree.to_string();
+        let (split_oid1, split_oid2) =split.split_at(2);
+        let tree_path = path.join("objects/".to_owned()+split_oid1+"/"+split_oid2);
+        let path = tree_path.as_path();
+        let tree_raw= fs::read(path);
+        let block_tree= Block::new(cid,tree_raw.unwrap());
+        doc.ipfs.as_ref().unwrap().insert(block_tree.unwrap()).expect("Could not insert block to IPFS store");
 
         // Commit to ipfs store
-        /** !!! Is Commit a string??? **/
 
-        let block_commit: ipfs_embed::Block<DefaultParams> =Block::encode(Raw, Code::Blake3_256, &ipld!(commit.as_bytes())).unwrap();
-        doc.ipfs.as_ref().unwrap().insert(block_commit.clone()).expect("Could not insert block to IPFS store");
-
-
-
+        let split = oid_tree.to_string();
+        let (split_oid1, split_oid2) =split.split_at(2);
+        let commit_path = path.join("objects/".to_owned()+split_oid1+"/"+split_oid2);
+        let path = commit_path.as_path();
+        let commit_raw= fs::read(path);
+        let block_commit= Block::new(cid,commit_raw.unwrap());
+        doc.ipfs.as_ref().unwrap().insert(block_commit.unwrap()).expect("Could not insert block to IPFS store");
 
         doc.ipfs.as_ref().unwrap().flush();
 
