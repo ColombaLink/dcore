@@ -1,7 +1,8 @@
-use cid::{Cid, CidGeneric};
 use cid::multihash::{Code,MultihashDigest};
 use git2::Oid;
-use multihash::Multihash;
+use libipld::Cid;
+use libipld::Multihash;
+//use multihash::Multihash;
 
 
 

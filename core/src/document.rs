@@ -140,6 +140,7 @@ pub struct DocumentNewOptions {
 }
 
 impl Document {
+
     pub fn new(options: DocumentNewOptions) -> Result<Document, Error> {
         let data_dir = PathBuf::from(options.directory).join("./.data");
         let repository = Repository::init_opts(&data_dir, &RepositoryInitOptions::new().bare(true))
@@ -242,17 +243,21 @@ impl Document {
         DocumentUtils::commit_update(&self, resource, update.to_owned())
             .expect("TODO: panic message");
 
+        // IPFS store
 
+        /* This is now done in document_utils
         if self.ipfs.is_some() {
-            let update_oid = self.repository.blob(&update).unwrap();
-            let cid = oid_to_cid(update_oid);
+            //let update_oid = self.repository.blob(&update).unwrap();
+            //let cid = oid_to_cid(update_oid);
             let block_create: ipfs_embed::Block<DefaultParams> = Block::encode(Raw, Code::Blake3_256, &ipld!(update.as_slice())).unwrap();
-
+            let cid = block_create.cid();
             self.ipfs.as_ref().unwrap().insert(block_create.clone()).expect("Could not insert block to IPFS store");
 
             //self.ipfs.unwrap().alias(x, Some(c1.cid()))?; What is this for?
             self.ipfs.as_ref().unwrap().flush();
         }
+
+         */
     }
 
     pub fn load(&mut self) -> Result<(), Error> {
@@ -462,18 +467,21 @@ mod tests {
     use lib0::any::Any;
     use libipld::cbor::DagCborCodec;
     use libipld::raw::RawCodec;
-    use libipld::{alias, ipld, DefaultParams, Ipld, Block, multihash::Code};
+    use libipld::{alias, ipld, DefaultParams, Ipld, Block, multihash::Code, Cid};
     use multihash::Blake3_256;
 
     use crate::document::DocumentNewOptions;
     use crate::Document;
 
     use async_std::stream::StreamExt;
+    use crate::errors::Error;
+    use crate::resource::Resource;
 
     use crate::test_utils::{
         create_test_env, create_test_env_with_new_gpg_key, create_test_env_with_sample_gpg_key,
         create_test_env_with_test_gpg_key, get_test_key,
     };
+    use crate::utils::oid_to_cid;
 
     #[test]
     fn new_doc() {
@@ -791,8 +799,6 @@ mod tests {
     fn create_ipld_block(ipld: &Ipld) -> ipfs_embed_core::Result<Block<DefaultParams>> {
         Block::encode(DagCborCodec, Code::Blake3_256, ipld)
     }
-
-
     #[async_std::test]
     async fn ipfs_store_insert_retrieve() -> ipfs_embed_core::Result<()> {
         let doc_dir = "./.test/doc/ipfs_store/";
@@ -927,5 +933,109 @@ mod tests {
 
 
         Ok(())
+    }
+
+    #[async_std::test]
+    async fn commit_updates_ipfs()-> Result<(),Error>{
+
+        let doc_dir = "./.test/doc/ipfs_store_commit/";
+        create_test_env_with_test_gpg_key(doc_dir.to_string());
+
+        // create 2 documents
+        let data_dir = PathBuf::from("./.test/doc/ipfs_store_commit/");
+        let sweep_interval = Duration::from_millis(10000);
+        let storage = StorageConfig::new(Option::from(data_dir), None, 10, sweep_interval);
+        let mut network = NetworkConfig::new(Keypair::generate());
+
+
+        let doc1 = Document::new(DocumentNewOptions {
+            directory: PathBuf::from(doc_dir),
+            identity_fingerprint: "A84E5D451E9E75B4791556896F45F34A926FBB70".to_string(),
+            name: String::from("name"),
+            ipfs_config: Option::from(Config { storage, network }),
+        })
+            .unwrap();
+
+
+        let mut doc1: Document = doc1
+            .init(&get_test_key().fingerprint, &get_test_key().public_key)
+            .unwrap();
+
+
+        // second Doc for Second ipfs Store
+
+        let data_dir = PathBuf::from("./.test/doc/ipfs_store/");
+        let sweep_interval = Duration::from_millis(10000);
+        let storage = StorageConfig::new(Option::from(data_dir), None, 10, sweep_interval);
+        let mut network = NetworkConfig::new(Keypair::generate());
+
+        let doc2 = Document::new(DocumentNewOptions {
+            directory: PathBuf::from(doc_dir),
+            identity_fingerprint: "A84E5D451E9E75B4791556896F45F34A926FBB70".to_string(),
+            name: String::from("name"),
+            ipfs_config: Option::from(Config { storage, network }),
+        })
+            .unwrap();
+
+        let mut doc2: Document = doc2
+            .init(&get_test_key().fingerprint, &get_test_key().public_key)
+            .unwrap();
+
+
+        let mut local1: Ipfs<DefaultParams> = doc1.ipfs.clone().unwrap();
+        let mut local2 = doc2.ipfs.clone().unwrap();
+
+        // had to import "use async_std::stream::StreamExt;" for next() to work
+        local1.listen_on("/ip4/127.0.0.1/tcp/0".parse().unwrap()).next().await.unwrap();
+        local2.listen_on("/ip4/127.0.0.1/tcp/0".parse().unwrap()).next().await.unwrap();
+
+        local1.add_address(local2.local_peer_id(), local2.listeners()[0].clone());
+        local2.add_address(local1.local_peer_id(), local1.listeners()[0].clone());
+
+
+        //edit document 1
+
+        /*
+        doc1.add_resource("test".to_string()).unwrap();
+        doc1.update_resource_with_key_value("test", "test", "1234")
+            .unwrap();
+
+         */
+
+
+        let mut resource = Resource::new(&"blub".to_string());
+        let update = resource.set_resource_meta(&"blub".to_string()).unwrap();
+
+        let _ = doc1.commit_update(&update, &resource);
+        doc1.resources.insert("blub".to_string(), resource);
+
+        // manaually create the cid
+        let update_oid = doc1.repository.blob(&*update).unwrap();
+        let cid:&Cid = &oid_to_cid(update_oid);
+
+        println!("test 0");
+
+        // this does not work
+        let res=local2
+            .sync(cid, vec![local1.local_peer_id()])
+            .await?
+            .await?;
+
+
+
+        println!("test 1");
+        let getL2=local2.get(cid);
+
+        println!("test 2");
+
+        let mut iter = local2.iter().unwrap();
+        let some = iter.next().unwrap();
+
+        println!("test 3");
+
+        println!("{}", some);
+
+        Ok(())
+
     }
 }
