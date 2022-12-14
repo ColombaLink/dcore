@@ -1,14 +1,13 @@
-use std::fs;
-use git2::{Blob, Oid, Tree};
-use libipld::{Block, DefaultParams, ipld};
-use libipld::IpldCodec::Raw;
-//use libipld::multihash::Code;
-use cid::multihash::Code;
+use git2::Oid;
+use std::fs::File;
+use std::io::{Read};
+use crate::errors::Error;
 use crate::gpg::Gpg;
 use crate::resource::Resource;
-use crate::Document;
-use crate::errors::Error;
 use crate::utils::oid_to_cid;
+use crate::Document;
+use ipfs_embed::Block;
+use compress::zlib;
 
 pub struct DocumentUtils;
 
@@ -17,7 +16,7 @@ impl DocumentUtils {
         doc: &Document,
         _resource: &Resource,
         update: Vec<u8>,
-    ) -> Result<(Oid,Oid,Oid), git2::Error> {
+    ) -> Result<(Oid, Oid, Oid), git2::Error> {
         let repo = &doc.repository;
         let resource_name = &_resource.name;
         let user_fingerprint = &doc.identity.get_fingerprint();
@@ -26,7 +25,10 @@ impl DocumentUtils {
             Ok(device) => device,
             Err(_) => "device-0",
         };
-        let log_name = format!("refs/local/{}/{}/{}", resource_name, user_fingerprint, device);
+        let log_name = format!(
+            "refs/local/{}/{}/{}",
+            resource_name, user_fingerprint, device
+        );
         let parents = match doc.repository.revparse_ext(log_name.as_str()) {
             Ok((_obj, reference)) => {
                 let oid = reference
@@ -43,7 +45,6 @@ impl DocumentUtils {
         };
 
         let update_oid = repo.blob(&update).unwrap();
-
 
         let mut builder = repo.treebuilder(None).unwrap();
         builder.insert("update", update_oid, 0o100644).unwrap();
@@ -100,72 +101,97 @@ impl DocumentUtils {
             .expect("Could not update the reference with the new commit.");
 
 
-       // values for update_ipfs store
+        let oid_blob = update_oid.clone();
+        let oid_tree = update_tree_oid;
+        let oid_commit = new_signed_commit;
 
-            //let blob_to_return = repo.find_blob(update_oid.clone()).unwrap();
-            let oid_blob = update_oid.clone();
-            //let tree_to_return = update_tree;
-            let oid_tree = update_tree_oid;
-            //let commit_to_return = commit_string;
-            let oid_commit = new_signed_commit;
-
-           // Self::update_ipfs(doc,blob_to_return,oid_blob,tree_to_return,oid_tree,commit_to_return,oid_commit);
-
-
-        Ok((oid_blob,oid_tree,oid_commit))
+        Ok((oid_blob, oid_tree, oid_commit))
     }
 
-    pub fn update_ipfs(doc:&Document, oid_blob:Oid, oid_tree:Oid,  oid_commit:Oid) -> Result<(),Error>{
+    pub fn update_ipfs(
+        doc: &Document,
+        oid_blob: Oid,
+        oid_tree: Oid,
+        oid_commit: Oid,
+    ) -> Result<(), Error> {
 
-        // Get raw git objects from Fs
-
+        // Blob
+        // create Path of object
         let path = doc.repository.path();
-        println!("path of repo {}",path.to_str().unwrap());
-
-        let split = oid_blob.to_string();
-        let (split_oid1, split_oid2) =split.split_at(2);
-
-        let blob_path = path.join("objects/".to_owned()+split_oid1+"/"+split_oid2);
-        let path = blob_path.as_path();
-        println!("{}", path.to_str().unwrap());
-
-        let blob_raw= fs::read(path);
-        println!("{}", blob_raw.as_ref().unwrap().len());
-
-
-        //let block_blob: ipfs_embed::Block<DefaultParams> =Block::encode(GIT_CODEC, Code::Sha1, (blob.content())).unwrap();
-        let cid = oid_to_cid(oid_blob);
-        let block_blob= Block::new(cid,blob_raw.unwrap());
-
-        //Unsupported multihash 17.
-        let blocki = block_blob.as_ref();
-        println!("{}", blocki.err().unwrap());
-
-        doc.ipfs.as_ref().unwrap().insert(block_blob.unwrap()).expect("Could not insert block to IPFS store");
-
-        // Tree to ipfs store
-
-
         let split = oid_tree.to_string();
-        let (split_oid1, split_oid2) =split.split_at(2);
-        let tree_path = path.join("objects/".to_owned()+split_oid1+"/"+split_oid2);
+        let (split_oid1, split_oid2) = split.split_at(2);
+        let tree_path = path.join("objects/".to_owned() + split_oid1 + "/" + split_oid2);
         let path = tree_path.as_path();
-        let tree_raw= fs::read(path);
-        let block_tree= Block::new(cid,tree_raw.unwrap());
-        doc.ipfs.as_ref().unwrap().insert(block_tree.unwrap()).expect("Could not insert block to IPFS store");
 
-        // Commit to ipfs store
+        // Read raw object and decompress with Zlib
+        let stream = File::open(path).unwrap();
+        let mut decompressed = Vec::new();
+        zlib::Decoder::new(stream)
+            .read_to_end(&mut decompressed)
+            .expect("Could not decode Git Object with ZLIB");
 
-        let split = oid_tree.to_string();
-        let (split_oid1, split_oid2) =split.split_at(2);
-        let commit_path = path.join("objects/".to_owned()+split_oid1+"/"+split_oid2);
+        // create CID from Oid
+        let cid = oid_to_cid(oid_tree);
+        let block = Block::new_unchecked(cid, decompressed);
+
+        doc.ipfs
+            .as_ref()
+            .unwrap()
+            .insert(block)
+            .expect("Could not insert block to IPFS store");
+
+        // Tree
+        // create Path of object
+        let path = doc.repository.path();
+        let split = oid_blob.to_string();
+        let (split_oid1, split_oid2) = split.split_at(2);
+        let blob_path = path.join("objects/".to_owned() + split_oid1 + "/" + split_oid2);
+        let path = blob_path.as_path();
+
+        // Read raw object and decompress with Zlib
+        let stream = File::open(path).unwrap();
+        let mut decompressed = Vec::new();
+        zlib::Decoder::new(stream)
+            .read_to_end(&mut decompressed)
+            .expect("Could not decode Git Object with ZLIB");
+
+        // create CID from Oid
+        let cid = oid_to_cid(oid_blob);
+        let block = Block::new_unchecked(cid, decompressed);
+
+        doc.ipfs
+            .as_ref()
+            .unwrap()
+            .insert(block)
+            .expect("Could not insert block to IPFS store");
+
+        // Commit
+        // create Path of object
+        let path = doc.repository.path();
+        let split = oid_commit.to_string();
+        let (split_oid1, split_oid2) = split.split_at(2);
+        let commit_path = path.join("objects/".to_owned() + split_oid1 + "/" + split_oid2);
         let path = commit_path.as_path();
-        let commit_raw= fs::read(path);
-        let block_commit= Block::new(cid,commit_raw.unwrap());
-        doc.ipfs.as_ref().unwrap().insert(block_commit.unwrap()).expect("Could not insert block to IPFS store");
 
+        // Read raw object and decompress with Zlib
+        let stream = File::open(path).unwrap();
+        let mut decompressed = Vec::new();
+        zlib::Decoder::new(stream)
+            .read_to_end(&mut decompressed)
+            .expect("Could not decode Git Object with ZLIB");
+
+        // create CID from Oid
+        let cid = oid_to_cid(oid_commit);
+        let block = Block::new_unchecked(cid, decompressed);
+
+        doc.ipfs
+            .as_ref()
+            .unwrap()
+            .insert(block)
+            .expect("Could not insert block to IPFS store");
+
+        // flush the store
         doc.ipfs.as_ref().unwrap().flush();
-
 
         Ok(())
     }

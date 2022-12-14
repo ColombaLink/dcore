@@ -1,23 +1,17 @@
-use cid::multihash::{Code,MultihashDigest};
+use ipfs_embed::multiaddr::multihash::MultihashGeneric;
 use git2::Oid;
-use libipld::Cid;
-use libipld::Multihash;
-//use multihash::Multihash;
-
-
+use ipfs_embed::Cid;
 
 pub fn oid_to_cid(githash: Oid) -> Cid {
 
     const GIT_CODEC:u64 = 0x78;
-
     let bytes= githash.as_bytes();
     let append:&[u8] = &[0x11,0x14]; // 11 = sha1 , 14 = length=20 // all hex
-    let vec=[append,bytes].concat();
+    let mut vec=[append,bytes].concat();
     let fin = vec.as_slice();
-    let mh = Multihash::from_bytes(&fin).unwrap();
+    let mh = MultihashGeneric::from_bytes(&fin).unwrap();
 
     Cid::new_v1(GIT_CODEC,mh)
-
 }
 
 pub fn cid_to_oid(cid:Cid)-> Oid{

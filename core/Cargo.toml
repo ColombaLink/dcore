@@ -8,7 +8,10 @@ edition = "2021"
 [dependencies]
 cid = "0.9.0"
 git2 = "0.15"
-multihash = "0.17.0"
+zip = "0.6.3"
+sha1 = "0.10.5"
+
+compress = "0.2.1"
 
 yrs = "0.12.0"
 futures-timer = "3.0.2"
@@ -18,8 +21,8 @@ thiserror = "1.0.37"
 der = "0.6.0"
 fs_extra = "1.2.0"
 ipfs-embed-core = "0.10.0"
-ipfs-embed = "0.25.1"
-libipld = "0.14.0"
+libipld = { version = "0.14.0", default-features = false, features = ["dag-git","dag-cbor", "dag-pb", "derive"] }
+ipfs-embed= "0.26.0"
 tempdir = "0.3.7"
 tracing-subscriber = { version = "0.3.1", features = ["env-filter"] }
 
@@ -50,4 +53,3 @@ version = "0.3.1"
 [dev-dependencies.async-std]
 version = "1.6.2"
 features = ["attributes"]
-

@@ -4,3 +4,7 @@ members = [
     "core",
     "cli"
 ]
+
+[patch.crates-io]
+libipld = {git = "https://gitlab.com/ColombaLink/dev/dapsi/public/dybli/core/deps/libipld-v14.git", branch = "patched"}
+ipfs-embed = {git = "https://gitlab.com/ColombaLink/dev/dapsi/public/dybli/core/deps/ipfs-embed_repo.git", branch ="broken"}

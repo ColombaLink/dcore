@@ -1,4 +1,3 @@
-use std::borrow::Borrow;
 use std::collections::{HashMap, HashSet};
 use git2::{BranchType, Cred, PushOptions};
 use crate::{Document, Identity};
@@ -71,7 +70,7 @@ impl GitSync {
                 update_status.insert(refname.to_string(), status.map(|s| s.to_string()));
                 Ok(())
             });
-            let mut push_options = PushOptions::new();;
+            let mut push_options = PushOptions::new();
             push_options.remote_callbacks(callbacks);
             let remote_ref = reference.replace("local", "heads");
             remote.push(
@@ -138,23 +137,12 @@ impl GitSync {
 }
 #[cfg(test)]
 mod tests {
-
-    use std::collections::HashMap;
-    use std::fs;
-
-    use fs_extra::dir::CopyOptions;
     use std::path::PathBuf;
-
-    use lib0::any::Any;
-
     use crate::document::DocumentNewOptions;
     use crate::Document;
     use crate::sync_git::GitSync;
 
-    use crate::test_utils::{
-        create_test_env, create_test_env_with_new_gpg_key, create_test_env_with_sample_gpg_key,
-        create_test_env_with_test_gpg_key, get_test_key,
-    };
+    use crate::test_utils::{create_test_env_with_test_gpg_key, get_test_key};
 
 
 

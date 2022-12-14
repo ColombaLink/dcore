@@ -204,7 +204,7 @@ pub fn create_test_env_with_test_gpg_key(test_data_path: String) -> (PathBuf, Ke
         .get_public_key("A84E5D451E9E75B4791556896F45F34A926FBB70")
         .unwrap();
 
-    if(false){
+    if false{
         // todo: move this somewhere else...
 
         let mut context = gpgme::Context::from_protocol(gpgme::Protocol::OpenPgp)
